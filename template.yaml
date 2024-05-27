@@ -61,7 +61,7 @@ Resources:
                   - ecr:*
                   - logs:*
                   - sqs:*
-                  - ssm:*
+                  - s3:*
                 Resource: "*"
     
   AutoScalingRole:
@@ -82,12 +82,9 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action:
-                  - cloudwatch:DescribeAlarms
-                  - cloudwatch:PutMetricAlarm
-                  - ecs:UpdateService
-                  - application-autoscaling:PutScalingPolicy
-                  - application-autoscaling:PutScalingTarget
-                  - application-autoscaling:RegisterScalableTarget
+                  - cloudwatch:*
+                  - ecs:*
+                  - application-autoscaling:*
                 Resource: "*"
 
   ImportPlayerGamesFunction:
@@ -218,6 +215,7 @@ Resources:
           - MetricIntervalLowerBound: 0
             ScalingAdjustment: 1
 
+  # Not currently used
   ScaleDownPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
@@ -242,27 +240,11 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
           Subnets:
             - !Ref PrivateSubnet
           SecurityGroups:
-            - !Ref ECSSecurityGroup
-          AssignPublicIp: DISABLED
-  
-  ECSSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId: !Ref VPC
-      GroupDescription: Security group for ECS tasks
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          FromPort: 0
-          ToPort: 65535
-          CidrIp: 0.0.0.0/0
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
+            - !Ref SecurityGroup
 
   VPC:
     Type: AWS::EC2::VPC
@@ -274,91 +256,98 @@ Resources:
         - Key: Name
           Value: rotten-chess-vpc
 
-  PublicSubnet:
-    Type: AWS::EC2::Subnet
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
+      GroupDescription: Shared security group
       VpcId: !Ref VPC
-      CidrBlock: 10.0.0.0/24
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: rotten-chess-public-subnet
+
+  SecurityGroupAccessRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref SecurityGroup
+      GroupId: !Ref SecurityGroup
 
   PrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.0.1.0/24
-      MapPublicIpOnLaunch: false
+      CidrBlock: 10.0.128.0/24
       Tags:
         - Key: Name
           Value: rotten-chess-private-subnet
 
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: rotten-chess-igw
-
-  AttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId: !Ref VPC
-      InternetGatewayId: !Ref InternetGateway
-
-  NATGateway:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      SubnetId: !Ref PublicSubnet
-      AllocationId: !GetAtt EIP.AllocationId
-
-  EIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-
-  PublicRouteTable:
+  RouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: rotten-chess-public-route-table
-
-  PrivateRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: rotten-chess-private-route-table
-
-  PublicRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-
-  PrivateRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NATGateway
-
-  PublicSubnetRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnet
-      RouteTableId: !Ref PublicRouteTable
+          Value: rotten-chess-route-table
 
   PrivateSubnetRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref RouteTable
+  
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref RouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !Ref VPC
+  
+  SQSEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sqs
+      VpcId: !Ref VPC
+
+  CloudWatchLogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      VpcId: !Ref VPC
+  
+  EcrApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+      VpcId: !Ref VPC
+
+  EcrDkrEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+      VpcId: !Ref VPC
 
 
 
