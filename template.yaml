@@ -93,7 +93,7 @@ Resources:
   ImportPlayerGamesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: import_player_games/
+      CodeUri: functions/import_player_games/
       Handler: app.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-ImportPlayerGamesFunction
@@ -111,7 +111,7 @@ Resources:
   EnqueueDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: enqueue_dynamodb_items/
+      CodeUri: functions/enqueue_dynamodb_items/
       Handler: app.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-EnqueueDynamoDBItemsFunction
