@@ -20,25 +20,14 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
-                Action: dynamodb:*
-                Resource: 
-                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/*
-              - Effect: Allow
-                Action: s3:*
-                Resource: 
-                  - !Sub arn:aws:s3:::*
-              - Effect: Allow
-                Action: secretsmanager:GetSecretValue
-                Resource: 
-                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*
-              - Effect: Allow 
-                Action: 
-                  - sqs:SendMessage
-                  - sqs:ReceiveMessage
-                  - sqs:DeleteMessage
-                  - sqs:GetQueueAttributes
-                Resource:
-                  - !GetAtt GameQueue.Arn
+                Action:
+                  - dynamodb:*
+                  - s3:*
+                  - sqs:*
+                  - ec2:*
+                  - secretsmanager:GetSecretValue
+                Resource: "*"
+
 
   ECSTaskRole:
     Type: AWS::IAM::Role
@@ -119,6 +108,37 @@ Resources:
         Variables:
           PLAYER_GAMES_TABLE_NAME: !Ref GameImportsDynamoDB
           SQS_QUEUE_URL: !Ref GameQueue
+      Architectures:
+        - x86_64
+    
+  PrivateLinkProvisionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/provision_privatelinks/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-PrivateLinkProvisionFunction
+      Timeout: 300 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          VPC_ID: !Ref VPC
+          SUBNET_ID: !Ref PrivateSubnet
+          SECURITY_GROUP_ID: !Ref SecurityGroup
+      Architectures:
+        - x86_64
+
+  PrivateLinkDeprovisionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/deprovision_privatelinks/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-PrivateLinkDeprovisionFunction
+      Timeout: 300 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
       Architectures:
         - x86_64
 
@@ -299,54 +319,6 @@ Resources:
       RouteTableIds:
         - !Ref RouteTable
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
-      VpcId: !Ref VPC
-  
-  SQSEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref SecurityGroup
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.sqs
-      VpcId: !Ref VPC
-
-  CloudWatchLogsEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref SecurityGroup
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
-      VpcId: !Ref VPC
-  
-  EcrApiEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref SecurityGroup
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
-      VpcId: !Ref VPC
-
-  EcrDkrEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref SecurityGroup
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
       VpcId: !Ref VPC
 
 
