@@ -16,10 +16,8 @@ These games are imported in JSON format to a DyanmoDB in the following format:
       "c189b116-1d45-11ef-855f-6cfe544c0428"
   },
   "black": {
-    {
-      "username": {
-        "RantomOpening"
-      }
+    "username": {
+      "RantomOpening"
     }
   },
   "end_time": {
@@ -35,10 +33,8 @@ These games are imported in JSON format to a DyanmoDB in the following format:
     "blitz"
   },
   "white": {
-      {
-      "username": {
-        "GothamChess"
-      }
+    "username": {
+      "GothamChess"
     }
   }
 }
