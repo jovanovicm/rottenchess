@@ -4,10 +4,10 @@ import os
 def lambda_handler(event, context):
     ec2 = boto3.client('ec2')
 
-    VPC_ID = os.environ['VPC_ID']
-    SUBNET_ID = [os.environ['SUBNET_ID']]
-    SECURITY_GROUP_ID = [os.environ['SECURITY_GROUP_ID']]
-    AWS_REGION = os.environ['AWS_REGION']
+    VPC_ID = os.environ('VPC_ID')
+    SUBNET_ID = [os.environ('SUBNET_ID')]
+    SECURITY_GROUP_ID = [os.environ('SECURITY_GROUP_ID')]
+    AWS_REGION = os.environ('AWS_REGION')
     ENDPOINT_TYPE = 'Interface'
     PRIVATE_DNS_ENABLED = True
 

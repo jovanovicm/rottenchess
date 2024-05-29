@@ -6,7 +6,7 @@ def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(os.environ['PLAYER_GAMES_TABLE_NAME'])
     sqs = boto3.client('sqs')
-    queue_url = os.environ['SQS_QUEUE_URL']
+    queue_url = os.environ('SQS_QUEUE_URL')
 
     # Initialize scan parameters
     scan_kwargs = {
