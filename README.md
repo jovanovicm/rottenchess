@@ -11,33 +11,19 @@ To import games from Chess.com, the Lambda function `import_player_games` is use
 
 These games are imported in JSON format to a DyanmoDB in the following format:
 ```
-{
-  "game_uuid": {
-      "c189b116-1d45-11ef-855f-6cfe544c0428"
-  },
-  "black": {
-    "username": {
-      "RantomOpening"
+    {
+        "game_uuid": "c189b116-1d45-11ef-855f-6cfe544c0428",
+        "black": {
+            "username": "RantomOpening" 
+        },
+        "end_time": 1716937572,
+        "game_url": "https://www.chess.com/game/live/110676101507", 
+        "moves": "e4 c5 a3 e6 ...",
+        "time_class": "blitz",
+        "white": {
+            "username": "GothamChess" 
+        }
     }
-  },
-  "end_time": {
-    "1716937572"
-  },
-  "game_url": {
-    "https://www.chess.com/game/live/110676101507"
-  },
-  "moves": {
-    "e4 c5 a3 e6 b4 cxb4 axb4 Bxb4 c3 Bf8 d4 d5 e5 Nc6 Qg4 Nge7 h4 h5 Qh3 Nf5 Nf3 Be7 Bd3 g6 Bxf5 exf5 Qg3 Be6 Bg5 Bxg5 Nxg5 Qd7 Na3 Nd8 O-O O-O Rfb1 b6 Nb5 Nb7 Nxe6 Qxe6 Nc7 Qc6 Nxa8 Rxa8 Kh2 a5 Qg5 Qe6 Rb5 Ra6 Kg3 Qc6 Rb3 a4 Rba3 b5 Rb1 Na5 e6 Qd6+ Kh3 Qxa3 Qd8+ Kg7 e7 Re6 e8=Q Qxc3+ f3 Rxe8 Qxe8 Qxd4 Rxb5 Nc4 Rb8 Kh7 Qxf7+ Kh6 Qf8+ Qg7 Qc5 f4 Qxd5 Ne3 Qg5+ Kh7 Qxf4 Qd7+ Kh2 Nd5 Qe5 Nf6 Rf8"
-  },
-  "time_class": {
-    "blitz"
-  },
-  "white": {
-    "username": {
-      "GothamChess"
-    }
-  }
-}
 ...
 ```
 
