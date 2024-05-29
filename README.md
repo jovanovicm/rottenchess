@@ -12,7 +12,7 @@ To import games from Chess.com, the Lambda function `import_player_games` is use
 These games are imported in JSON format to a DyanmoDB in the following format:
 ```
     {
-        "game_uuid": "c189b116-1d45-11ef-855f-6cfe544c0428",
+        "game_uuid": "c189b116-1d45-11ef-855f-6cfe544c0428", # Primary Key
         "black": {
             "username": "RantomOpening" 
         },
