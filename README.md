@@ -1,6 +1,6 @@
 # Rotten Chess 🤢
 ### ~~What is Rotten Chess?~~ What will Rotten Chess become?
-Rotten chess will be a leaderboard website tracking the number of inaccuracies, mistakes, and blunders that top players make in their most mistake-ridden and rotten chess games. 
+Rotten chess will be a leaderboard website tracking the number of inaccuracies, mistakes, and blunders that top players make in their most mistake-ridden and <ins>rotten chess</ins> games. 
 Considering how good these players are, it's interesting to see how many mistakes are made in low time formats.
 
 ### How does Rotten Chess work?
