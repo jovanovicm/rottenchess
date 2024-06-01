@@ -3,6 +3,7 @@ from urllib import request, error
 import boto3
 import os
 import re
+from datetime import datetime, timedelta
 
 def lambda_handler(event, context):
     try:
@@ -10,21 +11,24 @@ def lambda_handler(event, context):
         BUCKET_NAME = os.getenv('BUCKET_NAME')
         OBJECT_KEY_1 = os.getenv('OBJECT_KEY_1')
         OBJECT_KEY_2 = os.getenv('OBJECT_KEY_2')
+        today = datetime.now().strftime("%m-%d-%Y")
+        remove_period = (datetime.now() - timedelta(days=30)).strftime("%m-%d-%Y")
 
-        leaderboard, leaderboard_players = get_leaderboard(USER_AGENT_EMAIL)
-        upload_to_s3(BUCKET_NAME, OBJECT_KEY_1, leaderboard)
+        # Fetch current leaderboard
+        leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL, today)
+        tracked_dict = get_player_dict(BUCKET_NAME, OBJECT_KEY_1) or leaderboard_dict
+        personality_dict = get_player_dict(BUCKET_NAME, OBJECT_KEY_2)
 
-        personality_players = get_personality_players(BUCKET_NAME, OBJECT_KEY_2)
+        # Update tracked players
+        updated_tracked_dict = update_players(tracked_dict, leaderboard_dict, today, remove_period)
 
-        players = list(set(leaderboard_players + personality_players))
+        # Store updated data in S3
+        tracked_json = json.dumps(updated_tracked_dict, indent=2)
+        upload_to_s3(BUCKET_NAME, OBJECT_KEY_1, tracked_json)
 
-        # Process each player
-        for player in players:
-            print(f"Fetching games for player: {player}")
-            games = get_games(USER_AGENT_EMAIL, player, '2024', '05')
-            if games:
-                print(f"Storing games in DynamoDB for player: {player}")
-                store_games(games)
+        # Collect all usernames and fetch games
+        all_usernames = get_usernames(updated_tracked_dict + personality_dict)
+        fetch_and_store_games(all_usernames, USER_AGENT_EMAIL)
 
     except Exception as e:
         print(f"Error processing: {str(e)}")
@@ -43,7 +47,28 @@ def get_secret():
 
     return secret
 
-def get_leaderboard(USER_AGENT_EMAIL):
+def update_players(tracked_dict, leaderboard_dict, today, remove_period):
+    updated_tracked_dict = {player['username']: player for player in leaderboard_dict}
+
+    for player in tracked_dict:
+        if player['username'] not in updated_tracked_dict:
+            if player["last_seen"] >= remove_period:
+                player["last_seen"] = today
+                updated_tracked_dict[player['username']] = player
+            else:
+                print(f"Removed {player['username']} from tracked players")
+
+    return list(updated_tracked_dict.values())
+
+def fetch_and_store_games(usernames, USER_AGENT_EMAIL):
+    for username in usernames:
+        print(f"Fetching games for player: {username}")
+        games = get_games(USER_AGENT_EMAIL, username, '2024', '05')
+        if games:
+            print(f"Storing games in DynamoDB for player: {username}")
+            store_games(games)
+
+def get_leaderboard(USER_AGENT_EMAIL, today):
     url = "https://api.chess.com/pub/leaderboards"
     headers = {'User-Agent': USER_AGENT_EMAIL}
 
@@ -53,8 +78,7 @@ def get_leaderboard(USER_AGENT_EMAIL):
         with request.urlopen(req) as response:
             if response.status == 200:
                 data = json.loads(response.read().decode('utf-8'))
-                leaderboard = []
-                players = []
+                leaderboard_dict = []
                 
                 for player in data['live_blitz']:
                     country_code = player["country"].rsplit('/', 1)[-1]
@@ -65,19 +89,17 @@ def get_leaderboard(USER_AGENT_EMAIL):
                         "rank": player["rank"],
                         "rating": player["score"],
                         "title": player["title"],
-                        "country": country_code
+                        "country": country_code,
+                        "last_seen": today
                     }
 
-                    leaderboard.append(leaderboard_player)
-                    players.append(player["username"])
+                    leaderboard_dict.append(leaderboard_player)
 
-                leaderboard_json = json.dumps(leaderboard, indent=2)
-
-                return leaderboard_json, players
+                return leaderboard_dict
             
     except error.URLError as e:
         print(f"Failed: {e.reason}")
-        return None, None
+        return None
         
     
 def get_games(USER_AGENT_EMAIL, username, year, month):
@@ -104,21 +126,19 @@ def get_games(USER_AGENT_EMAIL, username, year, month):
                     return pgn
 
                 for game in data["games"]:
-                    if game["end_time"] >= MIN_END_TIME and game['time_class'] == TIME_CLASS:
+                    # Ensure all required fields are present
+                    if all(key in game for key in ['end_time', 'time_class', 'pgn']) and \
+                       game['end_time'] >= MIN_END_TIME and \
+                       game['time_class'] == TIME_CLASS:
                         game_info = {
                             "game_uuid": game["uuid"],
-                            "white": {
-                                "username": game["white"]["username"],
-                            },
-                            "black": {
-                                "username": game["black"]["username"],
-                            },
+                            "white": game["white"],
+                            "black": game["black"],
                             "game_url": game["url"],
                             "end_time": game["end_time"],
                             "time_class": game["time_class"],
                             "moves": extract_moves(game["pgn"])
                         }
-
                         games.append(game_info)
 
                 return games
@@ -126,24 +146,26 @@ def get_games(USER_AGENT_EMAIL, username, year, month):
     except error.URLError as e:
         print(f"Failed: {e.reason}")
         return None
+    except KeyError as e:
+        print(f"Missing expected game data key: {e} - Continuing with other games")
+        return None
 
-def get_personality_players(BUCKET_NAME, OBJECT_KEY):
-    s3 = boto3.client('s3')
-    response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_KEY)
+def get_player_dict(BUCKET_NAME, OBJECT_KEY):
+    try:
+        s3 = boto3.client('s3')
+        response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_KEY)
+
+        return json.loads(response['Body'].read().decode('utf-8'))
     
-    players_data = json.loads(response['Body'].read().decode('utf-8'))
-    players = [player["username"] for player in players_data]
-    
-    print(f"Retrieved {len(players)} players from S3.")
-    return players
+    except json.JSONDecodeError:
+        return []
+
+def get_usernames(player_data):
+    return [player["username"] for player in player_data]
 
 def upload_to_s3(BUCKET_NAME, OBJECT_KEY, data):
     s3 = boto3.client('s3')
-    try:
-        s3.put_object(Body=data, Bucket=BUCKET_NAME, Key=OBJECT_KEY)
-        print("File uploaded successfully to S3.")
-    except Exception as e:
-        print(f"Failed to upload file to S3: {e}")
+    s3.put_object(Body=data, Bucket=BUCKET_NAME, Key=OBJECT_KEY)
 
 def store_games(games):
     dynamodb = boto3.resource('dynamodb')
@@ -154,12 +176,8 @@ def store_games(games):
         for game in games:
             item = {
                 "game_uuid": game["game_uuid"], # Primary Key
-                "white": {
-                    "username": game["white"]["username"],
-                },
-                "black": {
-                    "username": game["black"]["username"],
-                },
+                "white": game["white"]["username"],
+                "black": game["black"]["username"],
                 "game_url": game["game_url"],
                 "end_time": game["end_time"],
                 "time_class": game["time_class"],
