@@ -86,13 +86,29 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          TABLE_NAME: !Ref GameImportsDynamoDB
-          BUCKET_NAME: rotten-chess-player-info
-          OBJECT_KEY_1: leaderboard_players.json
-          OBJECT_KEY_2: personality_players.json
+          GAME_IMPORTS_TABLE: !Ref GameImportsTable
+          TRACKED_PLAYERS_TABLE: !Ref TrackedPlayersTable
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
           SECRET_ARN: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:rotten-chess/user-agent-NKXP8b
       Architectures:
         - x86_64
+  
+  ImportPersonalityPlayersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/import_personality_players/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-ImportPersonalityPlayersFunction
+      Timeout: 100
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          TRACKED_PLAYERS_TABLE: !Ref TrackedPlayersTable
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+          SECRET_ARN: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:rotten-chess/user-agent-NKXP8b
+      Architectures:
+        - x86_64   
   
   EnqueueDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
@@ -106,7 +122,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          PLAYER_GAMES_TABLE_NAME: !Ref GameImportsDynamoDB
+          GAME_IMPORTS_TABLE: !Ref GameImportsTable
           SQS_QUEUE_URL: !Ref GameQueue
       Architectures:
         - x86_64
@@ -142,11 +158,25 @@ Resources:
       Architectures:
         - x86_64
 
-  GameImportsDynamoDB:
+  GameImportsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
       PrimaryKey:
         Name: game_uuid
+        Type: String
+  
+  TrackedPlayersTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: username
+        Type: String
+  
+  PlayerStatsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: username
         Type: String
   
   GameQueue:

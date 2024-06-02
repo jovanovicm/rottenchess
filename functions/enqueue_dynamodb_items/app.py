@@ -4,9 +4,11 @@ import os
 
 def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table(os.environ['PLAYER_GAMES_TABLE_NAME'])
+    GAME_IMPORTS_TABLE = os.environ('GAME_IMPORTS_TABLE')
+    table = dynamodb.Table(GAME_IMPORTS_TABLE)
+    
     sqs = boto3.client('sqs')
-    queue_url = os.environ('SQS_QUEUE_URL')
+    SQS_QUEUE_URL = os.environ('SQS_QUEUE_URL')
 
     # Initialize scan parameters
     scan_kwargs = {
@@ -24,7 +26,7 @@ def lambda_handler(event, context):
 
         # Send batch to SQS
         if items:
-            sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(items))
+            sqs.send_message(QueueUrl=SQS_QUEUE_URL, MessageBody=json.dumps(items))
 
         start_key = response.get('LastEvaluatedKey', None)
         done = start_key is None
