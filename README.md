@@ -6,23 +6,27 @@ Considering how good these players are, it's interesting to see how many mistake
 ### How does Rotten Chess work?
 Rotten Chess tracks games on **Chess.com** from players in the **Top 50 leaderboard for Blitz** as well as some selected chess personalities like [GothamChess](https://www.youtube.com/channel/UCQHX6ViZmPsWiYSFAyS0a3Q). 
 Blitz was selected as it is the most popular chess format on the website among top players.
+
 #### Importing Games
-To import games from Chess.com, the Lambda function `import_player_games` is used to gather the games via calls to the Chess.com API. In these calls, the players from the Top 50 leaderboard in Blitz are referenced, and other relevant player information is saved in a **S3** as a JSON file which is referenced later for use in the website. A JSON file containing the tracked chess personalities is also referenced in these API calls. 
+The Lambda function `import_player_games` retrieves games from Chess.com by making API calls to gather game data for players. This function specifically targets:
+- **Top 50 Blitz Players**: Fetches current game data from players who are ranked in the top 50 in the Blitz category
+- **Tracked Personalities and Players**: Includes additional game data from a curated list of chess personalities and other players of interest (like myself)
+
+The collected data is stored in three DynamoDB tables:
+1. **Game Imports Table**: Stores game information for later processing
+2. **Tracked Players Table**: Maintains a dynamic list of all the players being tracked
+3. **Player Stats Table**: Further information on tracked players, used for the website
 
 These games are imported in JSON format to a DyanmoDB in the following format:
 ```
     {
         "game_uuid": "c189b116-1d45-11ef-855f-6cfe544c0428", # Primary Key
-        "black": {
-            "username": "RantomOpening" 
-        },
+        "black": "RantomOpening"
         "end_time": 1716937572,
         "game_url": "https://www.chess.com/game/live/110676101507", 
         "moves": "e4 c5 a3 e6 ...",
         "time_class": "blitz",
-        "white": {
-            "username": "GothamChess" 
-        }
+        "white": "GothamChess"
     }
 ...
 ```
