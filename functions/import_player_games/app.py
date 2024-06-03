@@ -77,7 +77,7 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dic
 
     # Leaderboard Inactivty Check
     for player in tracked_dict:
-        if player['last_seen'] <= remove_period and player['is_leaderboard_player'] == True:
+        if player.get('last_seen', '01-01-2000') <= remove_period and player['is_leaderboard_player'] == True:
             tracked_table.delete_item(Key={'username': player['username']})
 
             print(f"Removed {player['username']} from tracked players due to inactivity in leaderboard")
@@ -124,7 +124,6 @@ def get_leaderboard(USER_AGENT_EMAIL):
     except error.URLError as e:
         print(f"Failed: {e.reason}")
         return None
-        
     
 def get_games(USER_AGENT_EMAIL, MIN_END_TIME, TIME_CLASS, username, year, month):
     url = f"https://api.chess.com/pub/player/{username}/games/{year}/{month}"
@@ -136,7 +135,7 @@ def get_games(USER_AGENT_EMAIL, MIN_END_TIME, TIME_CLASS, username, year, month)
             if response.status == 200:
                 data = json.loads(response.read().decode('utf-8'))
                 games = []
-                MIN_END_TIME = 1716774840
+                MIN_END_TIME = 1717200000
                 TIME_CLASS = 'blitz'
 
                 def extract_moves(pgn):
@@ -147,6 +146,7 @@ def get_games(USER_AGENT_EMAIL, MIN_END_TIME, TIME_CLASS, username, year, month)
                     pgn = re.sub(r'\d+\.', '', pgn)
                     pgn = re.sub(r'\.\.', ' ', pgn)
                     pgn = re.sub(r'\s+', ' ', pgn).strip()
+                    pgn = re.sub(r'1/2\-1/2|1\-0|0\-1$', '', pgn).strip()
                     return pgn
 
                 for game in data["games"]:

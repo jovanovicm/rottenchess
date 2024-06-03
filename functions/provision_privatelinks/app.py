@@ -4,10 +4,10 @@ import os
 def lambda_handler(event, context):
     ec2 = boto3.client('ec2')
 
-    VPC_ID = os.environ('VPC_ID')
-    SUBNET_ID = [os.environ('SUBNET_ID')]
-    SECURITY_GROUP_ID = [os.environ('SECURITY_GROUP_ID')]
-    AWS_REGION = os.environ('AWS_REGION')
+    VPC_ID = os.getenv('VPC_ID')
+    SUBNET_ID = [os.getenv('SUBNET_ID')]
+    SECURITY_GROUP_ID = [os.getenv('SECURITY_GROUP_ID')]
+    AWS_REGION = os.getenv('AWS_REGION')
     ENDPOINT_TYPE = 'Interface'
     PRIVATE_DNS_ENABLED = True
 
@@ -15,7 +15,8 @@ def lambda_handler(event, context):
         f'com.amazonaws.{AWS_REGION}.logs',
         f'com.amazonaws.{AWS_REGION}.sqs',
         f'com.amazonaws.{AWS_REGION}.ecr.api',
-        f'com.amazonaws.{AWS_REGION}.ecr.dkr'
+        f'com.amazonaws.{AWS_REGION}.ecr.dkr',
+        f'com.amazonaws.{AWS_REGION}.ecs'
     ]
 
     for service in services:

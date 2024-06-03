@@ -50,6 +50,7 @@ Resources:
                   - logs:*
                   - sqs:*
                   - s3:*
+                  - dynamodb:*
                 Resource: "*"
     
   AutoScalingRole:
@@ -223,6 +224,8 @@ Resources:
           Environment:
             - Name: SQS_QUEUE_URL
               Value: !Ref GameQueue
+            - Name: PLAYER_STATS_TABLE
+              Value: !Ref PlayerStatsTable
 
   ECSScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
@@ -348,6 +351,15 @@ Resources:
       RouteTableIds:
         - !Ref RouteTable
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !Ref VPC
+  
+  DynamoDBEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref RouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
       VpcId: !Ref VPC
 
 

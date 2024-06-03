@@ -9,7 +9,7 @@ def lambda_handler(event, context):
     USER_AGENT_EMAIL = get_secret()
 
     # Chess Personalities I like + me
-    usernames = ['GothamChess', 'alexandrabotez', 'markoj000']
+    usernames = ['gothamchess', 'alexandrabotez', 'nemsko', 'annacramling', 'markoj000']
     
     players_info = get_players_info(usernames, USER_AGENT_EMAIL)
     store_tracked_players(players_info, TRACKED_PLAYERS_TABLE)

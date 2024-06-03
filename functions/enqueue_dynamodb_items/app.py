@@ -1,14 +1,21 @@
-import boto3
 import json
+import boto3
 import os
+from decimal import Decimal
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
-    GAME_IMPORTS_TABLE = os.environ('GAME_IMPORTS_TABLE')
+    GAME_IMPORTS_TABLE = os.getenv('GAME_IMPORTS_TABLE')
     table = dynamodb.Table(GAME_IMPORTS_TABLE)
     
     sqs = boto3.client('sqs')
-    SQS_QUEUE_URL = os.environ('SQS_QUEUE_URL')
+    SQS_QUEUE_URL = os.getenv('SQS_QUEUE_URL')
 
     # Initialize scan parameters
     scan_kwargs = {
@@ -26,9 +33,10 @@ def lambda_handler(event, context):
 
         # Send batch to SQS
         if items:
-            sqs.send_message(QueueUrl=SQS_QUEUE_URL, MessageBody=json.dumps(items))
+            sqs.send_message(QueueUrl=SQS_QUEUE_URL, MessageBody=json.dumps(items, cls=DecimalEncoder))
 
         start_key = response.get('LastEvaluatedKey', None)
         done = start_key is None
 
-    return {'statusCode': 200, 'body': json.dumps('Items enqueued successfully')}
+    return {'statusCode': 200}
+
