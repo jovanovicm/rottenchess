@@ -134,7 +134,7 @@ def analyze_moves(moves, engine, board):
              'black': {'inaccuracies': 0, 'mistakes': 0, 'blunders': 0}}
     
     def winning_chances(cp):
-        MULTIPLIER = -0.004
+        MULTIPLIER = -0.00368208
         return 1 / (1 + math.exp(MULTIPLIER * cp))
 
     for i, move_san in enumerate(moves):
