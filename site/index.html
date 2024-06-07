@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RottenChess Leaderboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="filter-bar">
+        <button class="pill" onclick="filterLeaderboard('all')">All</button>
+        <button class="pill" onclick="filterLeaderboard('top50')">Top 50 Players</button>
+        <button class="pill" onclick="filterLeaderboard('personality')">Chess Personalities</button>
+    </div>
+    <table class="leaderboard">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0, this)">Blunders <span class="icon-wrapper"><img src="icons/blunder.png" class="icon"></span></th>
+                <th onclick="sortTable(1, this)">Mistakes <span class="icon-wrapper"><img src="icons/mistake.png" class="icon"></span></th>
+                <th onclick="sortTable(2, this)">Inaccuracies <span class="icon-wrapper"><img src="icons/inaccuracy.png" class="icon"></span></th>
+                <th onclick="sortTable(3, this)">Username</th>
+                <th onclick="sortTable(4, this)">Rating</th>
+            </tr>
+        </thead>
+        <tbody id="leaderboard-body">
+            <tr data-category="top50">
+                <td>2</td>
+                <td>4</td>
+                <td>5</td>
+                <td><div class="leaderboard-chess-title">GM</div> User1</td>
+                <td>2500</td>
+            </tr>
+            <tr data-category="personality">
+                <td>3</td>
+                <td>2</td>
+                <td>1</td>
+                <td><div class="leaderboard-chess-title">IM</div> User2</td>
+                <td>2450</td>
+            </tr>
+            <!-- Additional rows with random values can be added here -->
+        </tbody>
+    </table>
+<script src="script.js"></script>
+</body>
+</html>

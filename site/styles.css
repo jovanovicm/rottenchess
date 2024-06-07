@@ -1,0 +1,87 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+
+.filter-bar {
+    margin-bottom: 20px;
+}
+
+.pill {
+    padding: 10px 20px;
+    border: 2px solid #3A4F41; 
+    border-radius: 20px;
+    background-color: white; 
+    color: #3A4F41; 
+    cursor: pointer;
+    margin-right: 5px;
+    transition: background-color 0.3s, color 0.3s; 
+}
+
+.pill:hover, .pill.active {
+    background-color: #2E4236;  
+    color: white;  
+}
+
+.leaderboard {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 15px;
+    overflow: hidden; 
+}
+
+.leaderboard th, .leaderboard td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.leaderboard th {
+    background-color: #3A4F41;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    position: relative;
+    padding: 10px;
+    text-align: left;
+}
+
+.leaderboard tr:last-child td {
+    border-bottom: none;
+}
+
+.icon-wrapper {
+    display: inline-block;
+    position: relative;
+    width: 20px;
+    height: auto;
+    vertical-align: middle;
+}
+
+.icon {
+    width: 100%;
+    height: auto;
+    vertical-align: middle;
+}
+
+.sort-arrow.asc {
+    background-image: url('icons/arrow-up.png');
+}
+
+.sort-arrow.desc {
+    background-image: url('icons/arrow-down.png');
+}
+
+.leaderboard-chess-title {
+    background-color: #7c2929;
+    border-radius: 0.3rem;
+    color: white !important;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.2rem 0.3rem;
+    display: inline-block;
+}
