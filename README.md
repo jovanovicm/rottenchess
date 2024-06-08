@@ -86,7 +86,7 @@ Further information on tracked players used for the website, including finalized
 Once the Game Imports Table is populated, the Simple Queue Service (SQS) is utilized to gather games in batches using the `enqueue_dynamodb_items` function to prepare games for processing.
 
 The Elastic Container Service (ECS) is used to deploy multiple Docker Containers. Each Container has:
-- **Stockfish Chess Engine:** A very strong chess engine
+- **Stockfish 16.1 Chess Engine:** A very strong chess engine
 - **analysis.py:** A script utilizing the engine to analyze games to gather the numbers of blunders, mistakes, and inaccuracies
 
 #### Analysis
@@ -96,22 +96,24 @@ Results are sent to the Player Stats Table.
 
 ---
 #### Win Percentage Calculation
-To determine the move classifications, first a win percentage calculation must happen. Stockfish analyzes each move in a game at a <ins>Depth of 20</ins> to determine the centipawn value. This value is put through the following function which calculates the win percentage based on a player's centipawn value. This is the same function [used by Lichess](https://lichess.org/page/accuracy) in their calculation for win percentage.
+To determine the move classifications, first a win percentage calculation must happen. Win percentage represents the chances a player has to win a game in a given position. Stockfish analyzes each position in a game at a <ins>Depth of 20</ins> to determine the centipawn value. The centipawn value is used in the following function, which is [used by Lichess](https://lichess.org/page/accuracy), to calculate the win percentage for every position.
 ```
 Win% = 50 + 50 * (2 / (1 + exp(-0.00368208 * centipawns)) - 1)
 ```
+> Win Percentage is based on Player ELO. Chess.com uses a closed source dyanmic system called ClassificationV2. Lichess uses an open source static system which uses the above formula calculated using games among 2300 ELO players as a benchmark to determine winning chances.
+
 ---
 #### Move Classification
-By referencing the change in percentage value between moves, we can determine what a move is classified as. The following bounds are used for move classification:
+By referencing the change in percentage value between positions, we can determine what the move leading to a position is classified as. The following bounds, which are the same bounds [used by Chess.com](https://support.chess.com/en/articles/8572705-how-are-moves-classified-what-is-a-blunder-or-brilliant-and-etc), are used for move classification:
 
 ```
 Blunder = win_prob_change >= 0.2        
 Mistake = 0.05 < win_prob_change >= 0.1
 Inaccuracy = 0 < win_prob_change >= 0.05
 ```
-
+> Move classifications may be different than the classifications on Chess.com due to the different methods used to determine win percentages
 ### Provisioning / Deprovisioning PrivateLinks
-To save on costs, PrivateLinks for services like the **Elastic Container Registry (ECR)**, and **CloudWatch** are provisioned using the `provision_privatelinks` function only when needed. After all processing is complete, these PrivateLinks are deprovisioned using the `deprovision_privatelinks` function. This results in a **83% lower cost** associated with PrivateLinks.
+To save on costs, PrivateLinks for services like the Elastic Container Registry (ECR), and CloudWatch are provisioned using the `provision_privatelinks` function. After all processing is complete, these PrivateLinks are deprovisioned using the `deprovision_privatelinks` function.
 
 
 
