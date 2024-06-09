@@ -1,69 +1,110 @@
-function filterLeaderboard(category) {
-    const rows = document.querySelectorAll('#leaderboard-body tr');
-    const pills = document.querySelectorAll('.pill');
-    let activePill = document.querySelector('.pill.active');
+// Global variable to keep track of current filter
+let currentFilter = 'all';
 
-    if (activePill && activePill.getAttribute('onclick').includes(category)) {
-        if (category !== 'all') {
-            // Deselect current pill, show all results
-            activePill.classList.remove('active');
-            category = 'all';
-            pills[0].classList.add('active'); // Assuming the first pill is "All"
-        }
+document.addEventListener("DOMContentLoaded", function() {
+    const allPill = document.getElementById('all');
+    allPill.classList.add('active');
+    filterLeaderboard('all', allPill);
+
+    const rankingColumn = document.querySelector('.ranking-column');
+    // Initialize the sort direction to 'asc' for the ranking column on page load
+    rankingColumn.setAttribute('data-sort-direction', 'asc');
+    sortTable(0, rankingColumn, true); // Default sort by Ranking in ascending order
+});
+
+function filterLeaderboard(category, element) {
+    const pills = document.querySelectorAll('.pill');
+    const isActive = element.classList.contains('active');
+
+    // Remove active class from all pills
+    pills.forEach(pill => pill.classList.remove('active'));
+
+    if (isActive && category !== 'all') {
+        // If the clicked pill is already active and not the 'all' category, reset to 'all'
+        document.getElementById('all').classList.add('active');
+        currentFilter = 'all';
     } else {
-        // Update active pill visually
-        pills.forEach(pill => {
-            if (pill.getAttribute('onclick').includes(category)) {
-                pill.classList.add('active');
-            } else {
-                pill.classList.remove('active');
-            }
-        });
+        // Otherwise, activate the clicked pill and set the current filter
+        element.classList.add('active');
+        currentFilter = category;
     }
 
-    // Show or hide rows based on category
+    applyFilters();
+}
+
+
+function applyFilters() {
+    const searchText = document.querySelector('.search-box').value.toLowerCase();
+    const rows = document.querySelectorAll('#leaderboard-body tr');
     rows.forEach(row => {
-        if (row.dataset.category === category || category === 'all') {
-            row.style.display = ''; // Show row
+        const usernameCell = row.getElementsByTagName("TD")[1];
+        const username = usernameCell.textContent || usernameCell.innerText;
+
+        if (username.toLowerCase().indexOf(searchText) > -1 && (currentFilter === 'all' || row.getAttribute('data-category') === currentFilter)) {
+            row.style.display = "";
         } else {
-            row.style.display = 'none'; // Hide row
+            row.style.display = "none";
         }
     });
 }
 
-function sortTable(columnIndex, thElement) {
-    const table = document.getElementById("leaderboard-body");
+function filterByName() {
+    applyFilters();  // This function is called on input events from the search box
+}
+
+function sortTable(columnIndex, headerElement, initial = false) {
+    let table = document.getElementById("leaderboard-body");
     let rows = Array.from(table.rows);
-    const isAscending = thElement.classList.contains('asc');
+    let direction = headerElement.getAttribute('data-sort-direction');
+    const isRankingColumn = columnIndex === 0; // Assuming the ranking column is the first column
 
-    // Remove ascending/descending classes from all headers
-    document.querySelectorAll('.leaderboard th').forEach(th => {
-        th.classList.remove('asc', 'desc');
-    });
-
-    // Toggle sort direction and update the class on the clicked header
-    if (isAscending) {
-        thElement.classList.add('desc');  // If it was ascending, now make it descending
-        thElement.classList.remove('asc');
+    if (initial) {
+        // Perform initial sorting without toggling direction
+        rows.sort((a, b) => {
+            let valA = parseFloat(a.cells[columnIndex].textContent.trim());
+            let valB = parseFloat(b.cells[columnIndex].textContent.trim());
+            return valA - valB; // Always ascending for initial sort
+        });
     } else {
-        thElement.classList.add('asc');   // If it was descending or neutral, now make it ascending
-        thElement.classList.remove('desc');
+        // Normal sorting behavior, toggling between states
+        if (isRankingColumn) {
+            // For ranking column, toggle only between asc and desc
+            if (!direction || direction === 'asc') {
+                direction = 'desc';
+            } else {
+                direction = 'asc';
+            }
+        } else {
+            // For other columns, toggle between desc, asc, and default
+            if (!direction || direction === 'default') {
+                direction = 'desc';
+            } else if (direction === 'desc') {
+                direction = 'asc';
+            } else if (direction === 'asc') {
+                direction = 'default';
+            }
+        }
+
+        headerElement.setAttribute('data-sort-direction', direction);
+
+        if (direction !== 'default') {
+            // Sort rows based on the current direction
+            rows.sort((a, b) => {
+                let valA = parseFloat(a.cells[columnIndex].textContent.trim());
+                let valB = parseFloat(b.cells[columnIndex].textContent.trim());
+                return (direction === 'asc' ? valA - valB : valB - valA);
+            });
+        } else {
+            // Default sorting: Sort by the ranking column, ascending
+            rows.sort((a, b) => {
+                let rankA = parseFloat(a.cells[0].textContent.trim());
+                let rankB = parseFloat(b.cells[0].textContent.trim());
+                return rankA - rankB;
+            });
+            headerElement.removeAttribute('data-sort-direction'); // Remove attribute when back to default
+        }
     }
 
-    // Sort rows based on the new direction
-    rows.sort((rowA, rowB) => {
-        const cellA = rowA.cells[columnIndex].textContent.trim();
-        const cellB = rowB.cells[columnIndex].textContent.trim();
-
-        // Adjust this logic if sorting more complex data like numbers or dates
-        if (isAscending) {
-            return cellB.localeCompare(cellA, undefined, {numeric: true});  // For descending order
-        } else {
-            return cellA.localeCompare(cellB, undefined, {numeric: true});  // For ascending order
-        }
-    });
-
-    // Reattach rows in new order
+    // Re-append sorted rows back to the table
     rows.forEach(row => table.appendChild(row));
 }
-

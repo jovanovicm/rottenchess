@@ -7,37 +7,164 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <header class="site-header">
+        <h1>RottenChess 🤢</h1>
+        <p>A leaderboard of blunders, mistakes, and inaccuracies!</p>
+    </header>
     <div class="filter-bar">
-        <button class="pill" onclick="filterLeaderboard('all')">All</button>
-        <button class="pill" onclick="filterLeaderboard('top50')">Top 50 Players</button>
-        <button class="pill" onclick="filterLeaderboard('personality')">Chess Personalities</button>
+        <button class="pill" onclick="filterLeaderboard('all', this)" id="all">All</button>
+        <button class="pill" onclick="filterLeaderboard('top50', this)">Top 50 Players</button>
+        <button class="pill" onclick="filterLeaderboard('personality', this)">Chess Personalities</button>
+        <input type="text" class="pill search-box" oninput="filterByName()" placeholder="Search Player...">
     </div>
     <table class="leaderboard">
         <thead>
             <tr>
-                <th onclick="sortTable(0, this)">Blunders <span class="icon-wrapper"><img src="icons/blunder.png" class="icon"></span></th>
-                <th onclick="sortTable(1, this)">Mistakes <span class="icon-wrapper"><img src="icons/mistake.png" class="icon"></span></th>
-                <th onclick="sortTable(2, this)">Inaccuracies <span class="icon-wrapper"><img src="icons/inaccuracy.png" class="icon"></span></th>
-                <th onclick="sortTable(3, this)">Username</th>
-                <th onclick="sortTable(4, this)">Rating</th>
+                <th onclick="sortTable(0, this)" class="ranking-column">
+                    Ranking
+                    <div class="sort-arrows">
+                        <img src="icons/arrow-up.png" class="sort-arrow up-arrow">
+                        <img src="icons/arrow-down.png" class="sort-arrow down-arrow">
+                    </div>
+                </th>
+                <th onclick="sortTable(1, this)">Username</th>
+                <th onclick="sortTable(2, this)">
+                    Rating
+                    <div class="sort-arrows">
+                        <img src="icons/arrow-up.png" class="sort-arrow up-arrow">
+                        <img src="icons/arrow-down.png" class="sort-arrow down-arrow">
+                    </div>
+                </th>
+                <th onclick="sortTable(3, this)">
+                    Blunders 
+                    <span class="icon-wrapper">
+                        <img src="icons/blunder.png" class="icon">
+                    </span>
+                    <div class="sort-arrows">
+                        <img src="icons/arrow-up.png" class="sort-arrow up-arrow">
+                        <img src="icons/arrow-down.png" class="sort-arrow down-arrow">
+                    </div>
+                </th>
+                <th onclick="sortTable(4, this)">
+                    Mistakes 
+                    <span class="icon-wrapper">
+                        <img src="icons/mistake.png" class="icon">
+                    </span>
+                    <div class="sort-arrows">
+                        <img src="icons/arrow-up.png" class="sort-arrow up-arrow">
+                        <img src="icons/arrow-down.png" class="sort-arrow down-arrow">
+                    </div>
+                </th>
+                <th onclick="sortTable(5, this)">
+                    Inaccuracies 
+                    <span class="icon-wrapper">
+                        <img src="icons/inaccuracy.png" class="icon">
+                    </span>
+                    <div class="sort-arrows">
+                        <img src="icons/arrow-up.png" class="sort-arrow up-arrow">
+                        <img src="icons/arrow-down.png" class="sort-arrow down-arrow">
+                    </div>
+                </th>
+                <th onclick="sortTable(6, this)">
+                    RM/G
+                    <div class="sort-arrows">
+                        <img src="icons/arrow-up.png" class="sort-arrow up-arrow">
+                        <img src="icons/arrow-down.png" class="sort-arrow down-arrow">
+                    </div>
+                </th>
             </tr>
-        </thead>
+        </thead>        
         <tbody id="leaderboard-body">
             <tr data-category="top50">
-                <td>2</td>
-                <td>4</td>
+                <td>1</td>
+                <td><div class="leaderboard-chess-title">GM</div> Alexei Boronin</td>
+                <td>2780</td>
+                <td>3</td>
                 <td>5</td>
-                <td><div class="leaderboard-chess-title">GM</div> User1</td>
-                <td>2500</td>
+                <td>2</td>
+                <td>0.10</td>
             </tr>
             <tr data-category="personality">
+                <td>2</td>
+                <td><div class="leaderboard-chess-title">IM</div> Fiona Steil-Antoni</td>
+                <td>2400</td>
+                <td>2</td>
+                <td>3</td>
+                <td>1</td>
+                <td>0.06</td>
+            </tr>
+            <tr data-category="top50">
+                <td>3</td>
+                <td><div class="leaderboard-chess-title">GM</div> Hikaru Nakamura</td>
+                <td>2750</td>
+                <td>4</td>
+                <td>1</td>
+                <td>3</td>
+                <td>0.08</td>
+            </tr>
+            <tr data-category="personality">
+                <td>4</td>
+                <td><div class="leaderboard-chess-title">NM</div> Tania Sachdev</td>
+                <td>2380</td>
+                <td>1</td>
+                <td>2</td>
+                <td>2</td>
+                <td>0.05</td>
+            </tr>
+            <tr data-category="top50">
+                <td>5</td>
+                <td><div class="leaderboard-chess-title">GM</div> Magnus Carlsen</td>
+                <td>2840</td>
+                <td>5</td>
+                <td>6</td>
+                <td>4</td>
+                <td>0.15</td>
+            </tr>
+            <tr data-category="personality">
+                <td>6</td>
+                <td><div class="leaderboard-chess-title">FM</div> Robert Hess</td>
+                <td>2450</td>
+                <td>4</td>
+                <td>4</td>
+                <td>3</td>
+                <td>0.11</td>
+            </tr>
+            <tr data-category="top50">
+                <td>7</td>
+                <td><div class="leaderboard-chess-title">GM</div> Fabiano Caruana</td>
+                <td>2820</td>
                 <td>3</td>
                 <td>2</td>
-                <td>1</td>
-                <td><div class="leaderboard-chess-title">IM</div> User2</td>
-                <td>2450</td>
+                <td>2</td>
+                <td>0.07</td>
             </tr>
-            <!-- Additional rows with random values can be added here -->
+            <tr data-category="personality">
+                <td>8</td>
+                <td><div class="leaderboard-chess-title">CM</div> Daniel Rensch</td>
+                <td>2200</td>
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+                <td>0.03</td>
+            </tr>
+            <tr data-category="top50">
+                <td>9</td>
+                <td><div class="leaderboard-chess-title">GM</div> Ding Liren</td>
+                <td>2790</td>
+                <td>2</td>
+                <td>2</td>
+                <td>1</td>
+                <td>0.04</td>
+            </tr>
+            <tr data-category="personality">
+                <td>10</td>
+                <td><div class="leaderboard-chess-title">GM</div> Levon Aronian</td>
+                <td>2755</td>
+                <td>3</td>
+                <td>3</td>
+                <td>2</td>
+                <td>0.09</td>
+            </tr>
         </tbody>
     </table>
 <script src="script.js"></script>

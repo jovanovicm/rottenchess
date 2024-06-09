@@ -6,6 +6,24 @@ body {
     padding: 20px;
 }
 
+.site-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.site-header h1 {
+    font-size: 3.5em;
+    color: #112016;
+    margin: 0.1em 0;
+}
+
+.site-header p {
+    font-size: 1.1em;
+    color: #555;
+    max-width: 80%;
+    margin: 0 auto;
+}
+
 .filter-bar {
     margin-bottom: 20px;
 }
@@ -14,7 +32,9 @@ body {
     padding: 10px 20px;
     border: 2px solid #3A4F41; 
     border-radius: 20px;
-    background-color: white; 
+    background-color: white;
+    font-size: 0.9rem;
+    font-weight: 700;
     color: #3A4F41; 
     cursor: pointer;
     margin-right: 5px;
@@ -24,6 +44,21 @@ body {
 .pill:hover, .pill.active {
     background-color: #2E4236;  
     color: white;  
+}
+
+.search-box {
+    border: 2px solid #3A4F41;
+    background-color: white;
+    color: #333;
+    padding: 10px;
+    border-radius: 20px;
+    outline: none;
+    width: 200px;
+}
+
+.search-box:focus, .search-box:hover {
+    background-color: #f4f4f4;  /* Light background on focus */
+    color: #333;
 }
 
 .leaderboard {
@@ -37,6 +72,10 @@ body {
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+}
+
+.leaderboard th:nth-child(3), .leaderboard td:nth-child(3) {
+    border-right: 2px solid #ddd;
 }
 
 .leaderboard th {
@@ -53,6 +92,13 @@ body {
     border-bottom: none;
 }
 
+.division-header {
+    width: 10px; /* Thin vertical line for division */
+    border-left: 2px solid #ddd; /* Solid line as a divider */
+    padding: 0; /* No padding to keep the line thin */
+    cursor: default; /* No pointer cursor on this non-interactive element */
+}
+
 .icon-wrapper {
     display: inline-block;
     position: relative;
@@ -67,12 +113,24 @@ body {
     vertical-align: middle;
 }
 
-.sort-arrow.asc {
-    background-image: url('icons/arrow-up.png');
+.sort-arrows {
+    display: inline-block;
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 20px;
 }
 
-.sort-arrow.desc {
-    background-image: url('icons/arrow-down.png');
+.sort-arrow {
+    display: block;
+    width: 12px;
+    height: 50%;
+    opacity: 0.3;
+}
+
+.sort-arrow.active {
+    opacity: 1;
 }
 
 .leaderboard-chess-title {
