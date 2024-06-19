@@ -4,6 +4,7 @@ import boto3
 import os
 import re
 from datetime import datetime, timedelta
+import time
 
 def lambda_handler(event, context):
     USER_AGENT_EMAIL = get_secret()
@@ -82,10 +83,16 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dic
             print(f"Removed {player['username']} from tracked players due to inactivity in leaderboard")
 
 
-def fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, usernames):
+def fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, usernames, days_ago=1):
+    base_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  # Today at midnight GMT
+    target_date = base_date - timedelta(days=days_ago)
+    epoch_time = int(time.mktime(target_date.timetuple()))  # Convert to epoch time
+    
+    print(f"Fetching games from: {target_date.strftime('%Y-%m-%d')} (epoch: {epoch_time})")
+
     for username in usernames:
         print(f"Fetching games for player: {username}")
-        games = get_games(USER_AGENT_EMAIL, 1717027200, 'blitz', username, '2024', '05')
+        games = get_games(USER_AGENT_EMAIL, epoch_time, 'blitz', username, target_date.strftime('%Y'), target_date.strftime('%m'))
         if games:
             print(f"Storing games in DynamoDB for player: {username}")
             store_game_imports(GAME_IMPORTS_TABLE, games)
@@ -134,8 +141,6 @@ def get_games(USER_AGENT_EMAIL, MIN_END_TIME, TIME_CLASS, username, year, month)
             if response.status == 200:
                 data = json.loads(response.read().decode('utf-8'))
                 games = []
-                MIN_END_TIME = 1717200000
-                TIME_CLASS = 'blitz'
 
                 def extract_moves(pgn):
                     pgn = re.sub(r'\[.*?\]', '', pgn)
@@ -200,15 +205,14 @@ def store_game_imports(GAME_IMPORTS_TABLE, games):
     with table.batch_writer() as batch:
         for game in games:
             item = {
-                "game_uuid": game["game_uuid"], # Primary Key
+                "game_uuid": game["game_uuid"],  # Primary Key
                 "white": game["white"]["username"],
                 "black": game["black"]["username"],
                 "game_url": game["game_url"],
                 "end_time": game["end_time"],
                 "time_class": game["time_class"],
-                "moves": game["moves"]
+                "moves": game["moves"],
             }
-
             batch.put_item(Item=item)
     print(f"Stored {len(games)} games in DynamoDB.")
 

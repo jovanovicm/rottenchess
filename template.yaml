@@ -196,6 +196,22 @@ Resources:
       Architectures:
         - x86_64
   
+  DeleteDynamoDBItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/delete_dynamodb_items/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-DeleteDynamoDBItemsFunction
+      Timeout: 120 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          GAME_IMPORTS_TABLE: !Ref GameImportsTable
+      Architectures:
+        - x86_64
+  
   StateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
@@ -214,11 +230,11 @@ Resources:
                   "States": {
                     "Import Player Games": {
                       "Type": "Task",
-                      "Resource": "arn:aws:states:::lambda:invoke",
-                      "OutputPath": "$.Payload",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGamesFunction:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:us-east-2:381492098196:function:rotten-chess-ImportPlayerGamesFunction:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGamesFunction:$LATEST"
                       },
+                      "ResultPath": "$.importResult",
                       "Retry": [
                         {
                           "ErrorEquals": [
@@ -241,12 +257,11 @@ Resources:
                   "States": {
                     "Provision PrivateLinks": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:us-east-2:381492098196:function:rotten-chess-PrivateLinkProvisionFunction:$LATEST",
-                      "OutputPath": "$.Payload",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvisionFunction:$LATEST",
                       "Parameters": {
-                        "Payload.$": "$",
-                        "FunctionName": "arn:aws:lambda:us-east-2:381492098196:function:rotten-chess-PrivateLinkProvisionFunction:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvisionFunction:$LATEST"
                       },
+                      "ResultPath": "$.provisionResult",
                       "Retry": [
                         {
                           "ErrorEquals": [
@@ -270,10 +285,9 @@ Resources:
             "Enqueue DynamoDB items": {
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
-              "OutputPath": "$.Payload",
               "Parameters": {
-                "Payload.$": "$",
-                "FunctionName": "arn:aws:lambda:us-east-2:381492098196:function:rotten-chess-EnqueueDynamoDBItemsFunction:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-EnqueueDynamoDBItemsFunction:$LATEST",
+                "Payload.$": "$"
               },
               "Retry": [
                 {
@@ -292,10 +306,9 @@ Resources:
             },
             "Check Queue": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:us-east-2:381492098196:function:rotten-chess-CheckQueueFunction:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueueFunction:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:us-east-2:381492098196:function:rotten-chess-CheckQueueFunction:$LATEST",
-                "Payload": {}
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueueFunction:$LATEST"
               },
               "Next": "Is Queue Empty"
             },
@@ -317,11 +330,9 @@ Resources:
             },
             "Deprovision PrivateLinks": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:us-east-2:381492098196:function:rotten-chess-PrivateLinkDeprovisionFunction:$LATEST",
-              "OutputPath": "$.Payload",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovisionFunction:$LATEST",
               "Parameters": {
-                "Payload.$": "$",
-                "FunctionName": "arn:aws:lambda:us-east-2:381492098196:function:rotten-chess-PrivateLinkDeprovisionFunction:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovisionFunction:$LATEST"
               },
               "Retry": [
                 {
@@ -381,8 +392,8 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: rotten-chess-task
-      Cpu: 2048
-      Memory: 4096
+      Cpu: 1024
+      Memory: 2048
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -395,8 +406,8 @@ Resources:
         - Name: chess-analysis
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:latest
           Essential: true
-          Cpu: 2048
-          Memory: 4096
+          Cpu: 1024
+          Memory: 2048
           LogConfiguration:
             LogDriver: awslogs
             Options:

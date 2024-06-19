@@ -7,11 +7,11 @@ def lambda_handler(event, context):
     
     response = sqs.get_queue_attributes(
         QueueUrl=SQS_QUEUE_URL,
-        AttributeNames=['ApproximateNumberOfMessagesVisible']
+        AttributeNames=['ApproximateNumberOfMessages']
     )
     
-    message_count = int(response['Attributes']['ApproximateNumberOfMessagesVisible'])
-    
+    message_count = int(response['Attributes']['ApproximateNumberOfMessages'])
+
     return {
         'isEmpty': message_count == 0
     }
