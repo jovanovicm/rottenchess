@@ -27,6 +27,27 @@ Resources:
                   - ec2:*
                   - secretsmanager:GetSecretValue
                 Resource: "*"
+  
+  StepFunctionsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionPermissions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - lambda:InvokeFunction
+                  - logs:*
+                Resource: "*"
 
   ECSTaskRole:
     Type: AWS::IAM::Role
@@ -158,6 +179,178 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Architectures:
         - x86_64
+  
+  CheckQueueFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/check_queue/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-CheckQueueFunction
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref GameQueue
+      Architectures:
+        - x86_64
+  
+  DeleteDynamoDBItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/delete_dynamodb_items/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-DeleteDynamoDBItemsFunction
+      Timeout: 120 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          GAME_IMPORTS_TABLE: !Ref GameImportsTable
+      Architectures:
+        - x86_64
+  
+  StateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
+      StateMachineName: "rotten-chess-StateMachine"
+      DefinitionString: !Sub |
+        {
+          "Comment": "State machine to import, provision, enqueue, and deprovision.",
+          "StartAt": "Parallel",
+          "States": {
+            "Parallel": {
+              "Type": "Parallel",
+              "Branches": [
+                {
+                  "StartAt": "Import Player Games",
+                  "States": {
+                    "Import Player Games": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGamesFunction:$LATEST",
+                      "Parameters": {
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGamesFunction:$LATEST"
+                      },
+                      "ResultPath": "$.importResult",
+                      "Retry": [
+                        {
+                          "ErrorEquals": [
+                            "Lambda.ServiceException",
+                            "Lambda.AWSLambdaException",
+                            "Lambda.SdkClientException",
+                            "Lambda.TooManyRequestsException"
+                          ],
+                          "IntervalSeconds": 1,
+                          "MaxAttempts": 3,
+                          "BackoffRate": 2
+                        }
+                      ],
+                      "End": true
+                    }
+                  }
+                },
+                {
+                  "StartAt": "Provision PrivateLinks",
+                  "States": {
+                    "Provision PrivateLinks": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvisionFunction:$LATEST",
+                      "Parameters": {
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvisionFunction:$LATEST"
+                      },
+                      "ResultPath": "$.provisionResult",
+                      "Retry": [
+                        {
+                          "ErrorEquals": [
+                            "Lambda.ServiceException",
+                            "Lambda.AWSLambdaException",
+                            "Lambda.SdkClientException",
+                            "Lambda.TooManyRequestsException"
+                          ],
+                          "IntervalSeconds": 1,
+                          "MaxAttempts": 3,
+                          "BackoffRate": 2
+                        }
+                      ],
+                      "End": true
+                    }
+                  }
+                }
+              ],
+              "Next": "Enqueue DynamoDB items"
+            },
+            "Enqueue DynamoDB items": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-EnqueueDynamoDBItemsFunction:$LATEST",
+                "Payload.$": "$"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Check Queue"
+            },
+            "Check Queue": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueueFunction:$LATEST",
+              "Parameters": {
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueueFunction:$LATEST"
+              },
+              "Next": "Is Queue Empty"
+            },
+            "Is Queue Empty": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.isEmpty",
+                  "BooleanEquals": true,
+                  "Next": "Deprovision PrivateLinks"
+                }
+              ],
+              "Default": "Wait and Recheck Queue"
+            },
+            "Wait and Recheck Queue": {
+              "Type": "Wait",
+              "Seconds": 120,
+              "Next": "Check Queue"
+            },
+            "Deprovision PrivateLinks": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovisionFunction:$LATEST",
+              "Parameters": {
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovisionFunction:$LATEST"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        }
 
   GameImportsTable:
     Type: AWS::Serverless::SimpleTable
@@ -199,8 +392,8 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: rotten-chess-task
-      Cpu: 2048
-      Memory: 4096
+      Cpu: 1024
+      Memory: 2048
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -213,8 +406,8 @@ Resources:
         - Name: chess-analysis
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:latest
           Essential: true
-          Cpu: 2048
-          Memory: 4096
+          Cpu: 1024
+          Memory: 2048
           LogConfiguration:
             LogDriver: awslogs
             Options:
