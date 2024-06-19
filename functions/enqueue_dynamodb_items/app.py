@@ -38,5 +38,7 @@ def lambda_handler(event, context):
         start_key = response.get('LastEvaluatedKey', None)
         done = start_key is None
 
-    return {'statusCode': 200}
+    return {
+        'statusCode': 200
+        }
 

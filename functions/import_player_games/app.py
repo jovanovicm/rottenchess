@@ -6,30 +6,29 @@ import re
 from datetime import datetime, timedelta
 
 def lambda_handler(event, context):
-    try:
-        USER_AGENT_EMAIL = get_secret()
-        TRACKED_PLAYERS_TABLE = os.getenv('TRACKED_PLAYERS_TABLE')
-        PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
-        GAME_IMPORTS_TABLE = os.getenv('GAME_IMPORTS_TABLE')
-        today = datetime.now().strftime("%m-%d-%Y")
-        remove_period = (datetime.now() - timedelta(days=30)).strftime("%m-%d-%Y")
+    USER_AGENT_EMAIL = get_secret()
+    TRACKED_PLAYERS_TABLE = os.getenv('TRACKED_PLAYERS_TABLE')
+    PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
+    GAME_IMPORTS_TABLE = os.getenv('GAME_IMPORTS_TABLE')
+    today = datetime.now().strftime("%m-%d-%Y")
+    remove_period = (datetime.now() - timedelta(days=30)).strftime("%m-%d-%Y")
 
-        # Fetch current leaderboard
-        leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL)
+    # Fetch current leaderboard
+    leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL)
 
-        # Update tracked players and stats
-        update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dict, today, remove_period)
+    # Update tracked players and stats
+    update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dict, today, remove_period)
 
-        dynamodb = boto3.resource('dynamodb')
-        tracked_dict = get_tracked_dict(TRACKED_PLAYERS_TABLE, dynamodb)
+    dynamodb = boto3.resource('dynamodb')
+    tracked_dict = get_tracked_dict(TRACKED_PLAYERS_TABLE, dynamodb)
 
-        # Collect all usernames and fetch games
-        all_usernames = [player['username'] for player in tracked_dict]
-        fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, all_usernames)
+    # Collect all usernames and fetch games
+    all_usernames = [player['username'] for player in tracked_dict]
+    fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, all_usernames)
 
-    except Exception as e:
-        print(f"Error processing: {str(e)}")
-        raise e
+    return {
+        'statusCode': 200
+    }
 
 def get_secret():
     SECRET_ARN = os.getenv('SECRET_ARN')

@@ -16,8 +16,7 @@ def lambda_handler(event, context):
     update_player_stats(players_info, PLAYER_STATS_TABLE)
     
     return {
-        'statusCode': 200,
-        'body': json.dumps(f'Successfully stored and updated data for {len(players_info)} players')
+        'statusCode': 200
     }
 
 def get_secret():
