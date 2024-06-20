@@ -1,7 +1,22 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  rotten-chess
+Description: Rotten Chess Functions
+
+Parameters:
+  VPC:
+    Type: String
+  SecurityGroup:
+    Type: String
+  PrivateSubnet:
+    Type: String
+  GameImportsTable:
+    Type: String
+  TrackedPlayersTable:
+    Type: String
+  PlayerStatsTable:
+    Type: String
+  GameQueue:
+    Type: String
 
 Resources:
   LambdaExecutionRole:
@@ -49,61 +64,13 @@ Resources:
                   - logs:*
                 Resource: "*"
 
-  ECSTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: ECSTaskPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ecs:*
-                  - ecr:*
-                  - logs:*
-                  - sqs:*
-                  - s3:*
-                  - dynamodb:*
-                Resource: "*"
-    
-  AutoScalingRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - application-autoscaling.amazonaws.com
-            Action: "sts:AssumeRole"
-      Policies:
-        - PolicyName: AutoScalingPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - cloudwatch:*
-                  - ecs:*
-                  - application-autoscaling:*
-                Resource: "*"
-
   ImportPlayerGamesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/import_player_games/
+      CodeUri: ../functions/import_player_games/
       Handler: app.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-ImportPlayerGamesFunction
+      FunctionName: rotten-chess-ImportPlayerGames
       Timeout: 600
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
@@ -118,10 +85,10 @@ Resources:
   ImportPersonalityPlayersFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/import_personality_players/
+      CodeUri: ../functions/import_personality_players/
       Handler: app.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-ImportPersonalityPlayersFunction
+      FunctionName: rotten-chess-ImportPersonalityPlayers
       Timeout: 100
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
@@ -135,10 +102,10 @@ Resources:
   EnqueueDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/enqueue_dynamodb_items/
+      CodeUri: ../functions/enqueue_dynamodb_items/
       Handler: app.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-EnqueueDynamoDBItemsFunction
+      FunctionName: rotten-chess-EnqueueDynamoDBItems
       Timeout: 300 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -152,10 +119,10 @@ Resources:
   PrivateLinkProvisionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/provision_privatelinks/
+      CodeUri: ../functions/provision_privatelinks/
       Handler: app.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-PrivateLinkProvisionFunction
+      FunctionName: rotten-chess-PrivateLinkProvision
       Timeout: 300 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -170,10 +137,10 @@ Resources:
   PrivateLinkDeprovisionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/deprovision_privatelinks/
+      CodeUri: ../functions/deprovision_privatelinks/
       Handler: app.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-PrivateLinkDeprovisionFunction
+      FunctionName: rotten-chess-PrivateLinkDeprovision
       Timeout: 300 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -183,10 +150,10 @@ Resources:
   CheckQueueFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/check_queue/
+      CodeUri: ../functions/check_queue/
       Handler: app.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-CheckQueueFunction
+      FunctionName: rotten-chess-CheckQueue
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -199,10 +166,10 @@ Resources:
   DeleteDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/delete_dynamodb_items/
+      CodeUri: ../functions/delete_dynamodb_items/
       Handler: app.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-DeleteDynamoDBItemsFunction
+      FunctionName: rotten-chess-DeleteDynamoDBItems
       Timeout: 120 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -216,7 +183,6 @@ Resources:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
       RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
-      StateMachineName: "rotten-chess-StateMachine"
       DefinitionString: !Sub |
         {
           "Comment": "State machine to import, provision, enqueue, and deprovision.",
@@ -230,9 +196,9 @@ Resources:
                   "States": {
                     "Import Player Games": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGamesFunction:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGames:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGamesFunction:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGames:$LATEST"
                       },
                       "ResultPath": "$.importResult",
                       "Retry": [
@@ -286,7 +252,7 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-EnqueueDynamoDBItemsFunction:$LATEST",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-EnqueueDynamoDBItems:$LATEST",
                 "Payload.$": "$"
               },
               "Retry": [
@@ -306,9 +272,9 @@ Resources:
             },
             "Check Queue": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueueFunction:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueue:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueueFunction:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueue:$LATEST"
               },
               "Next": "Is Queue Empty"
             },
@@ -330,9 +296,9 @@ Resources:
             },
             "Deprovision PrivateLinks": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovisionFunction:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovision:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovisionFunction:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovision:$LATEST"
               },
               "Retry": [
                 {
@@ -351,9 +317,9 @@ Resources:
             },
             "Delete DynamoDB Items": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItemsFunction:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItemsFunction:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST"
               },
               "Retry": [
                 {
@@ -372,212 +338,3 @@ Resources:
             }
           }
         }
-
-  GameImportsTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      PrimaryKey:
-        Name: game_uuid
-        Type: String
-  
-  TrackedPlayersTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      PrimaryKey:
-        Name: username
-        Type: String
-  
-  PlayerStatsTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      PrimaryKey:
-        Name: username
-        Type: String
-  
-  GameQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: rotten-chess-game-queue
-
-  ECSLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: rotten-chess-ECSLogGroup
-  
-  ECSCluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: rotten-chess-game-analysis
-
-  ECSTaskDefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Family: rotten-chess-task
-      Cpu: 1024
-      Memory: 2048
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      ExecutionRoleArn: !GetAtt ECSTaskRole.Arn
-      TaskRoleArn: !GetAtt ECSTaskRole.Arn
-      RuntimePlatform:
-        CpuArchitecture: X86_64
-        OperatingSystemFamily: LINUX
-      ContainerDefinitions:
-        - Name: chess-analysis
-          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:latest
-          Essential: true
-          Cpu: 1024
-          Memory: 2048
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref ECSLogGroup
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: ecs
-          Environment:
-            - Name: SQS_QUEUE_URL
-              Value: !Ref GameQueue
-            - Name: PLAYER_STATS_TABLE
-              Value: !Ref PlayerStatsTable
-
-  ECSScalingTarget:
-    Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties:
-      MaxCapacity: 100  
-      MinCapacity: 0    
-      ResourceId: !Sub service/${ECSCluster}/${ECSService.Name}
-      ScalableDimension: ecs:service:DesiredCount
-      ServiceNamespace: ecs
-      RoleARN: !GetAtt AutoScalingRole.Arn
-  
-  QueueMessagesAlarmHigh:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions:
-        - Name: QueueName
-          Value: !GetAtt GameQueue.QueueName
-      Statistic: Sum
-      Period: 10
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      AlarmActions:
-        - !Ref ScaleUpPolicy
-
-  ScaleUpPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties:
-      PolicyName: ECSServiceScaleUpPolicy
-      PolicyType: StepScaling
-      ScalingTargetId: !Ref ECSScalingTarget
-      StepScalingPolicyConfiguration:
-        AdjustmentType: ChangeInCapacity
-        Cooldown: 10
-        MetricAggregationType: Average
-        StepAdjustments:
-          - MetricIntervalLowerBound: 0
-            ScalingAdjustment: 1
-
-  # Not currently used
-  ScaleDownPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties:
-      PolicyName: ECSServiceScaleDownPolicy
-      PolicyType: StepScaling
-      ScalingTargetId: !Ref ECSScalingTarget
-      StepScalingPolicyConfiguration:
-        AdjustmentType: ChangeInCapacity
-        Cooldown: 10
-        MetricAggregationType: Average
-        StepAdjustments:
-          - MetricIntervalUpperBound: 0
-            ScalingAdjustment: -1
-
-  ECSService:
-    Type: AWS::ECS::Service
-    Properties:
-      ServiceName: rotten-chess-ecs-service
-      Cluster: !Ref ECSCluster
-      DesiredCount: 0
-      TaskDefinition: !Ref ECSTaskDefinition
-      LaunchType: FARGATE
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
-          Subnets:
-            - !Ref PrivateSubnet
-          SecurityGroups:
-            - !Ref SecurityGroup
-
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: rotten-chess-vpc
-
-  SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Shared security group
-      VpcId: !Ref VPC
-
-  SecurityGroupAccessRule:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      IpProtocol: -1
-      SourceSecurityGroupId: !Ref SecurityGroup
-      GroupId: !Ref SecurityGroup
-
-  PrivateSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.0.128.0/24
-      Tags:
-        - Key: Name
-          Value: rotten-chess-private-subnet
-
-  RouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: rotten-chess-route-table
-
-  PrivateSubnetRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnet
-      RouteTableId: !Ref RouteTable
-  
-  S3Endpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Gateway
-      RouteTableIds:
-        - !Ref RouteTable
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
-      VpcId: !Ref VPC
-  
-  DynamoDBEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Gateway
-      RouteTableIds:
-        - !Ref RouteTable
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
-      VpcId: !Ref VPC
-
-
-
-
-  
-

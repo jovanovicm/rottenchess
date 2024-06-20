@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Main template Rotten Chess
+
+Resources:
+  InfrastructureStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./infrastructure.yaml
+
+  FunctionsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./functions.yaml
+      Parameters:
+        VPC: !GetAtt InfrastructureStack.Outputs.VPC
+        SecurityGroup: !GetAtt InfrastructureStack.Outputs.SecurityGroup
+        PrivateSubnet: !GetAtt InfrastructureStack.Outputs.PrivateSubnet
+        GameImportsTable: !GetAtt InfrastructureStack.Outputs.GameImportsTable
+        TrackedPlayersTable: !GetAtt InfrastructureStack.Outputs.TrackedPlayersTable
+        PlayerStatsTable: !GetAtt InfrastructureStack.Outputs.PlayerStatsTable
+        GameQueue: !GetAtt InfrastructureStack.Outputs.GameQueue
