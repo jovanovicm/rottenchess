@@ -8,8 +8,14 @@ def lambda_handler(event, context):
     PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
     USER_AGENT_EMAIL = get_secret()
 
-    # Chess Personalities I like + me
-    usernames = ['gothamchess', 'alexandrabotez', 'nemsko', 'annacramling', 'markoj000']
+    # Chess Personalities + me
+    usernames = [
+        'markoj000',
+        'gothamchess',
+        'alexandrabotez', 
+        'nemsko', 
+        'annacramling',
+        ]
     
     players_info = get_players_info(usernames, USER_AGENT_EMAIL)
     store_tracked_players(players_info, TRACKED_PLAYERS_TABLE)
