@@ -64,6 +64,7 @@ Resources:
                   - logs:*
                 Resource: "*"
 
+  # Infrastructure-based Functions
   ImportPlayerGamesFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -71,7 +72,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-ImportPlayerGames
-      Timeout: 600
+      Timeout: 300
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -89,7 +90,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-ImportPersonalityPlayers
-      Timeout: 100
+      Timeout: 60
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -106,7 +107,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-EnqueueDynamoDBItems
-      Timeout: 300 
+      Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
@@ -123,7 +124,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-PrivateLinkProvision
-      Timeout: 300 
+      Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
@@ -141,7 +142,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-PrivateLinkDeprovision
-      Timeout: 300 
+      Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Architectures:
@@ -179,6 +180,40 @@ Resources:
       Architectures:
         - x86_64
   
+  # API Functions
+  GetPlayerStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../functions/api/get_player_stats/
+      Handler: get_player_stats.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-GetPlayerStats
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+  
+  GetPlayersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../functions/api/get_players/
+      Handler: get_players.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-GetPlayers
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+  
+  # Step Functions
   StateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
@@ -223,9 +258,9 @@ Resources:
                   "States": {
                     "Provision PrivateLinks": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvisionFunction:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvision:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvisionFunction:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvision:$LATEST"
                       },
                       "ResultPath": "$.provisionResult",
                       "Retry": [
@@ -338,3 +373,12 @@ Resources:
             }
           }
         }
+
+Outputs:
+  GetPlayerStatsFunction:
+    Description: "ARN of the GetPlayerStats Lambda function"
+    Value: !GetAtt GetPlayerStatsFunction.Arn
+
+  GetPlayersFunction:
+    Description: "ARN of the GetPlayers Lambda function"
+    Value: !GetAtt GetPlayersFunction.Arn

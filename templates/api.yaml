@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Rotten Chess API Resources
+
+Parameters:
+  GetPlayerStatsFunction:
+    Type: String
+  GetPlayersFunction:
+    Type: String
+
+Resources:
+  RottenChessAPI:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: RottenChessAPI
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - https://rottenchess.com
+          - https://www.rottenchess.com
+          - http://localhost:3000
+        AllowMethods:
+          - GET
+        AllowHeaders:
+          - Content-Type
+          - X-Amz-Date
+          - Authorization
+
+  GetPlayerStatsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlayerStatsFunction}/invocations
+      PayloadFormatVersion: "2.0"
+
+  GetPlayersIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlayersFunction}/invocations
+      PayloadFormatVersion: "2.0"
+
+  GetPlayerStatsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      RouteKey: GET /players/{username}
+      AuthorizationType: NONE
+      Target: !Join 
+        - '/'
+        - - 'integrations'
+          - !Ref GetPlayerStatsIntegration
+
+  GetPlayersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      RouteKey: GET /players
+      AuthorizationType: NONE
+      Target: !Join 
+        - '/'
+        - - 'integrations'
+          - !Ref GetPlayersIntegration
+
+  LambdaInvokePermissionGetPlayerStats:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetPlayerStatsFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/players/*
+
+  LambdaInvokePermissionGetPlayers:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetPlayersFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/players
+
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      StageName: prod
+      AutoDeploy: true
+
+Outputs:
+  ApiEndpoint:
+    Value: !Sub "https://${RottenChessAPI}.execute-api.${AWS::Region}.amazonaws.com/prod"
+    Description: "The endpoint of the PlayerStats API"
