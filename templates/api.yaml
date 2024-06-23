@@ -70,7 +70,7 @@ Resources:
       FunctionName: !Ref GetPlayerStatsFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/GET/players/*
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/players/*
 
   LambdaInvokePermissionGetPlayers:
     Type: AWS::Lambda::Permission
@@ -78,7 +78,7 @@ Resources:
       FunctionName: !Ref GetPlayersFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/GET/players
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/players
 
   ApiStage:
     Type: AWS::ApiGatewayV2::Stage
