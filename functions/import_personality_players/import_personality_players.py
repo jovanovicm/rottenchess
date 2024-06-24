@@ -85,11 +85,12 @@ def update_player_stats(players_info, PLAYER_STATS_TABLE):
     for player in players_info:
         table.update_item(
             Key={'username': player['username']},
-            UpdateExpression="SET player_name = :pn, player_title = :pt, country = :ct",
+            UpdateExpression="SET player_name = :pn, player_title = :pt, country = :ct, is_leaderboard_player = :lip",
             ExpressionAttributeValues={
                 ':pn': player['player_name'],
                 ':pt': player['player_title'],
-                ':ct': player['country']
+                ':ct': player['country'],
+                ':lip': False
             }
         )
         print(f"Updated player stats for {player['username']}")

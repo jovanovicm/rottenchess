@@ -53,8 +53,9 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dic
 
     # Update TrackedPlayers Table
     for player in leaderboard_dict:
+        username = player['username']
         tracked_table.update_item(
-            Key={'username': player['username']},
+            Key={'username': username},
             UpdateExpression="SET last_seen = :ls, is_leaderboard_player = :ilp",
             ExpressionAttributeValues={
                 ':ls': today,
@@ -64,23 +65,34 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dic
 
         # Update PlayerStats Table
         stats_table.update_item(
-            Key={'username': player['username']},
-            UpdateExpression="SET player_name = :pn, player_rank = :pr, rating = :rt, player_title = :pt, country = :c",
+            Key={'username': username},
+            UpdateExpression="SET player_name = :pn, player_rank = :pr, rating = :rt, player_title = :pt, country = :c, is_leaderboard_player = :lip, active = :a",
             ExpressionAttributeValues={
                 ':pn': player['player_name'],
                 ':pr': player['player_rank'],
                 ':rt': player['rating'],
                 ':pt': player['player_title'],
                 ':c': player['country'],
+                ':lip': True,
+                ':a': True
             }
         )
 
-    # Leaderboard Inactivty Check
+    # Leaderboard Inactivity Check
     for player in tracked_dict:
+        username = player['username']
         if player.get('last_seen', '01-01-2000') <= remove_period and player['is_leaderboard_player'] == True:
-            tracked_table.delete_item(Key={'username': player['username']})
+            tracked_table.delete_item(Key={'username': username})
+            
+            stats_table.update_item(
+                Key={'username': username},
+                UpdateExpression="SET active = :a",
+                ExpressionAttributeValues={
+                    ':a': False
+                }
+            )
 
-            print(f"Removed {player['username']} from tracked players due to inactivity in leaderboard")
+            print(f"Marked {username} as inactive in PlayerStats table due to inactivity in leaderboard")
 
 
 def fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, usernames, days_ago=1):
@@ -113,7 +125,7 @@ def get_leaderboard(USER_AGENT_EMAIL):
                     country_code = player["country"].rsplit('/', 1)[-1]
 
                     leaderboard_player = {
-                        "username": player["username"],
+                        "username": player["username"].lower(),
                         "player_name": player["name"],
                         "player_rank": player["rank"],
                         "rating": player["score"],
