@@ -1,5 +1,4 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
 Description: Rotten Chess API Resources
 
 Parameters:
@@ -87,7 +86,41 @@ Resources:
       StageName: prod
       AutoDeploy: true
 
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: api.rottenchess.com
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: api.rottenchess.com
+          HostedZoneId: Z09567002DFAQSHJR757S
+  
+  APIDomain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: api.rottenchess.com
+      DomainNameConfigurations:
+        - EndpointType: REGIONAL
+          CertificateArn: !Ref Certificate
+
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      DomainName: !Ref APIDomain
+      Stage: prod
+
+  Route53RecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z09567002DFAQSHJR757S
+      Name: api.rottenchess.com
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt APIDomain.RegionalDomainName
+        HostedZoneId: !GetAtt APIDomain.RegionalHostedZoneId
+
 Outputs:
   ApiEndpoint:
-    Value: !Sub "https://${RottenChessAPI}.execute-api.${AWS::Region}.amazonaws.com/prod"
-    Description: "The endpoint of the PlayerStats API"
+    Value: !Sub https://${APIDomain}
+    Description: The endpoint of the PlayerStats API
