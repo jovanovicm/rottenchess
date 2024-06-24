@@ -69,7 +69,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../functions/import_player_games/
-      Handler: app.lambda_handler
+      Handler: import_player_games.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-ImportPlayerGames
       Timeout: 300
@@ -87,7 +87,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../functions/import_personality_players/
-      Handler: app.lambda_handler
+      Handler: import_personality_players.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-ImportPersonalityPlayers
       Timeout: 60
@@ -104,7 +104,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../functions/enqueue_dynamodb_items/
-      Handler: app.lambda_handler
+      Handler: enqueue_dynamodb_items.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-EnqueueDynamoDBItems
       Timeout: 60 
@@ -121,7 +121,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../functions/provision_privatelinks/
-      Handler: app.lambda_handler
+      Handler: provision_privatelinks.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-PrivateLinkProvision
       Timeout: 60 
@@ -139,7 +139,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../functions/deprovision_privatelinks/
-      Handler: app.lambda_handler
+      Handler: deprovision_privatelinks.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-PrivateLinkDeprovision
       Timeout: 60 
@@ -152,7 +152,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../functions/check_queue/
-      Handler: app.lambda_handler
+      Handler: check_queue.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-CheckQueue
       Timeout: 60 
@@ -168,7 +168,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../functions/delete_dynamodb_items/
-      Handler: app.lambda_handler
+      Handler: delete_dynamodb_items.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-DeleteDynamoDBItems
       Timeout: 120 
