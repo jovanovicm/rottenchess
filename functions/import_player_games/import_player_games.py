@@ -51,6 +51,8 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dic
 
     tracked_dict = get_tracked_dict(TRACKED_PLAYERS_TABLE, dynamodb)
 
+    leaderboard_usernames = {player['username'] for player in leaderboard_dict}
+
     # Update TrackedPlayers Table
     for player in leaderboard_dict:
         username = player['username']
@@ -78,12 +80,10 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dic
             }
         )
 
-    # Leaderboard Inactivity Check
+    # Check for players no longer on the leaderboard
     for player in tracked_dict:
         username = player['username']
-        if player.get('last_seen', '01-01-2000') <= remove_period and player['is_leaderboard_player'] == True:
-            tracked_table.delete_item(Key={'username': username})
-            
+        if username not in leaderboard_usernames:
             stats_table.update_item(
                 Key={'username': username},
                 UpdateExpression="SET active = :a",
@@ -91,9 +91,12 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dic
                     ':a': False
                 }
             )
+            print(f"Marked {username} as inactive in PlayerStats table due to leaving the leaderboard")
 
-            print(f"Marked {username} as inactive in PlayerStats table due to inactivity in leaderboard")
-
+        # Remove tracking after being inactive leaderboard player for 30 days
+        if player.get('last_seen', '01-01-2000') <= remove_period and player['is_leaderboard_player']:
+            tracked_table.delete_item(Key={'username': username})
+            print(f"Deleted {username} from TrackedPlayers table due to inactivity")
 
 def fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, usernames, days_ago=1):
     base_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  # Today at midnight GMT
