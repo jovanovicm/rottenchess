@@ -4,13 +4,16 @@ import chess.engine
 import math
 import boto3
 import os
-from datetime import datetime
+from datetime import timezone, datetime
 from urllib.request import Request, urlopen
-
 
 AWS_REGION = os.getenv('AWS_REGION')
 QUEUE_URL = os.getenv('SQS_QUEUE_URL')
 PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
+ECS_SERVICE_NAME = os.getenv('ECS_SERVICE_NAME')
+ECS_CLUSTER_NAME = os.getenv('ECS_CLUSTER_NAME')
+ECS_AGENT_URI = os.getenv('ECS_AGENT_URI')
+
 ENGINE_PATH = '/usr/games/stockfish'
 
 engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
@@ -22,7 +25,6 @@ def log_print(*args, **kwargs):
     print(*args, **kwargs, flush=True)
 
 def set_task_protection(protected):
-    ECS_AGENT_URI = os.getenv('ECS_AGENT_URI')
     url = f"{ECS_AGENT_URI}/task-protection/v1/state"
     data = json.dumps({
         "protectionEnabled": protected
@@ -35,63 +37,92 @@ def set_task_protection(protected):
     
     log_print(f"Scale-in protection set to {protected}.")
 
-def update_player_stats(player, stats):
-    response = table.get_item(Key={'username': player})
-    if 'Item' not in response:
-        log_print(f'Player {player} not found in the database. Skipping...')
-        return
-    log_print(f'Player {player} found in the database')
-
-    current_date = datetime.now()
-    year = f'y{current_date.year}'
-    month = f'm{current_date.month:02}'
-
+def update_player_stats(player, stats, year, month, game_info, table, total_games_increment):
     keys = {'username': player}
-    expression_attribute_values = {":empty_map": {}}
 
-    initialize_paths = [
+    # Initialize paths
+    initialize_map_paths = [
         "SET game_stats = if_not_exists(game_stats, :empty_map)",
         f"SET game_stats.{year} = if_not_exists(game_stats.{year}, :empty_map)",
         f"SET game_stats.{year}.player_total = if_not_exists(game_stats.{year}.player_total, :empty_map)",
+        f"SET game_stats.{year}.worst_game = if_not_exists(game_stats.{year}.worst_game, :empty_map)",
         f"SET game_stats.{year}.{month} = if_not_exists(game_stats.{year}.{month}, :empty_map)",
-        f"SET game_stats.{year}.{month}.player_total = if_not_exists(game_stats.{year}.{month}.player_total, :empty_map)"
+        f"SET game_stats.{year}.{month}.player_total = if_not_exists(game_stats.{year}.{month}.player_total, :empty_map)",
+        f"SET game_stats.{year}.{month}.worst_game = if_not_exists(game_stats.{year}.{month}.worst_game, :empty_map)"
     ]
 
-    try:
-        for expr in initialize_paths:
-            table.update_item(
-                Key=keys,
-                UpdateExpression=expr,
-                ExpressionAttributeValues=expression_attribute_values
-            )
-    except Exception as e:
-        log_print(f"Error during initialization: {str(e)}")
-        return  
-    
-    try:
-        for stat, increment in stats.items():
-            log_print(f'stat: {stat}, increment: {increment}')
-            paths = [
-                f"game_stats.{year}.player_total.{stat}",
-                f"game_stats.{year}.{month}.player_total.{stat}"
-            ]
-            
-            for path in paths:
-                update_expression = f"SET {path} = if_not_exists({path}, :zero) + :inc_{stat}"
-                expression_attribute_values = {
-                    ":zero": 0,
-                    f":inc_{stat}": increment
-                }
-                table.update_item(
-                    Key=keys,
-                    UpdateExpression=update_expression,
-                    ExpressionAttributeValues=expression_attribute_values
-                )
-    except Exception as e:
-        log_print(f"Error during attribute update: {str(e)}")
-        return 
+    initialize_zero_paths = [
+        f"SET game_stats.{year}.total_games = if_not_exists(game_stats.{year}.total_games, :zero)",
+        f"SET game_stats.{year}.{month}.total_games = if_not_exists(game_stats.{year}.{month}.total_games, :zero)"
+    ]
 
-    log_print(f"Finished update process for player: {player}")
+    # Apply map initializations
+    for expr in initialize_map_paths:
+        table.update_item(
+            Key=keys,
+            UpdateExpression=expr,
+            ExpressionAttributeValues={":empty_map": {}}
+        )
+
+    # Apply zero initializations
+    for expr in initialize_zero_paths:
+        table.update_item(
+            Key=keys,
+            UpdateExpression=expr,
+            ExpressionAttributeValues={":zero": 0}
+        )
+
+    # Update the total_games
+    update_expression = f"ADD game_stats.{year}.total_games :inc_games, game_stats.{year}.{month}.total_games :inc_games"
+    table.update_item(
+        Key=keys,
+        UpdateExpression=update_expression,
+        ExpressionAttributeValues={":inc_games": total_games_increment}
+    )
+
+    # Update the statistical attributes and worst game
+    for stat, increment in stats.items():
+        yearly_path = f"game_stats.{year}.player_total.{stat}"
+        monthly_path = f"game_stats.{year}.{month}.player_total.{stat}"
+        
+        update_expression = f"ADD {yearly_path} :inc, {monthly_path} :inc"
+        table.update_item(
+            Key=keys,
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues={":inc": increment}
+        )
+
+    # Fetch current item to compare worst games
+    response = table.get_item(Key=keys)
+    item = response.get('Item', {})
+    game_stats = item.get('game_stats', {})
+    year_stats = game_stats.get(year, {})
+    month_stats = year_stats.get(month, {})
+
+    yearly_worst_game = year_stats.get('worst_game', {'magnitude': -1})
+    monthly_worst_game = month_stats.get('worst_game', {'magnitude': -1})
+
+    # Update worst game for year
+    if game_info['magnitude'] > yearly_worst_game.get('magnitude', -1):
+        update_expression = f"SET game_stats.{year}.worst_game = :game_info"
+        table.update_item(
+            Key=keys,
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues={":game_info": game_info}
+        )
+        log_print(f"Updated yearly worst game for {player} in {year}: {game_info}")
+
+    # Update worst game for month
+    if game_info['magnitude'] > monthly_worst_game.get('magnitude', -1):
+        update_expression = f"SET game_stats.{year}.{month}.worst_game = :game_info"
+        table.update_item(
+            Key=keys,
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues={":game_info": game_info}
+        )
+        log_print(f"Updated monthly worst game for {player} in {month}/{year}: {game_info}")
+
+    log_print(f"Updated stats for {player} in {month}/{year}: {stats}")
 
 def decrease_task_count(cluster_name, service_name):
     ecs_client = boto3.client('ecs',
@@ -153,11 +184,7 @@ def analyze_moves(moves, engine, board):
 
         info_after = engine.analyse(board, chess.engine.Limit(depth=20))
         score_after = info_after['score']
-        is_mate = score_after.is_mate()
         cp_after = int(score_after.white().score(mate_score=10000)) if player == 'white' else int(score_after.black().score(mate_score=10000))
-
-        if is_mate:
-            continue
 
         wp_before = winning_chances(cp_before)
         wp_after = winning_chances(cp_after)
@@ -172,13 +199,17 @@ def analyze_moves(moves, engine, board):
 
     return stats
 
-def process_message(message):
+def process_message(message, engine, table):
     games = json.loads(message['Body'])
-    player_stats = {}
     board = chess.Board()
+
     for game in games:
         board.reset()
         moves = game['moves'].split()
+        end_time = datetime.fromtimestamp(game['end_time'], timezone.utc)
+        year = f'y{end_time.year}'
+        month = f'm{end_time.month:02}'
+        
         log_print(f"Processing game: {game['game_uuid']}")
         game_stats = analyze_moves(moves, engine, board)
         if game_stats is None:
@@ -187,35 +218,41 @@ def process_message(message):
         players = {'white': game['white'], 'black': game['black']}
 
         for colour, player in players.items():
-            if player not in player_stats:
-                player_stats[player] = {'inaccuracies': 0, 'mistakes': 0, 'blunders': 0}
-            for key in game_stats[colour]:
-                player_stats[player][key] += game_stats[colour][key]
-        
-        log_print(f"Game processed successfully: {game['game_uuid']}")
-    
-    log_print(player_stats)
-    
-    for player, stats in player_stats.items():
-        log_print(f"Updating database for player: {player} with stats: {stats}")
-        update_player_stats(player, stats)
+            response = table.get_item(Key={'username': player})
+            if 'Item' not in response:
+                log_print(f'Player {player} not found in the database. Skipping...')
+                continue
 
-    return player_stats
+            current_stats = game_stats[colour]
+            
+            # Calculate magnitude for the game
+            game_magnitude = current_stats['blunders'] * 3 + current_stats['mistakes'] * 2 + current_stats['inaccuracies']
+            
+            game_info = {
+                'game_url': game['game_url'],
+                'magnitude': game_magnitude,
+                'stats': current_stats
+            }
+            
+            update_player_stats(player, current_stats, year, month, game_info, table, 1)
+
+        log_print(f"Game processed successfully: {game['game_uuid']}")
+
+    log_print("All games in message processed")
 
 def main():
     set_task_protection(True)
 
     messages = fetch_messages()
     for message in messages:
-        process_message(message)
+        process_message(message, engine, table)
         delete_message(message['ReceiptHandle'])
     
     engine.quit()
     log_print('TASK COMPLETE')
 
     set_task_protection(False)
-    decrease_task_count('rotten-chess-game-analysis', 'rotten-chess-ecs-service')
+    decrease_task_count(ECS_CLUSTER_NAME, ECS_SERVICE_NAME)
 
 if __name__ == '__main__':
     main()
-
