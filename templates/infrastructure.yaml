@@ -54,6 +54,7 @@ Resources:
   GameImportsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
+      TableName: rotten-chess-GameImportsTable
       PrimaryKey:
         Name: game_uuid
         Type: String
@@ -61,6 +62,7 @@ Resources:
   TrackedPlayersTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
+      TableName: rotten-chess-TrackedPlayersTable
       PrimaryKey:
         Name: username
         Type: String
@@ -68,6 +70,7 @@ Resources:
   PlayerStatsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
+      TableName: rotten-chess-PlayerStatsTable
       PrimaryKey:
         Name: username
         Type: String
