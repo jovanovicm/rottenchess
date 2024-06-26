@@ -14,15 +14,23 @@ ECS_SERVICE_NAME = os.getenv('ECS_SERVICE_NAME')
 ECS_CLUSTER_NAME = os.getenv('ECS_CLUSTER_NAME')
 ECS_AGENT_URI = os.getenv('ECS_AGENT_URI')
 
-ENGINE_PATH = '/usr/games/stockfish'
+engine = None
+sqs = None
+table = None
 
-engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
-sqs = boto3.client('sqs', region_name=AWS_REGION)
-dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
-table = dynamodb.Table(PLAYER_STATS_TABLE)
+def init_resources():
+    global sqs
+    global table
+    sqs = boto3.client('sqs', region_name=AWS_REGION)
+    dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
+    table = dynamodb.Table(PLAYER_STATS_TABLE)
 
 def log_print(*args, **kwargs):
     print(*args, **kwargs, flush=True)
+
+def init_engine(path='/usr/games/stockfish'):
+    global engine
+    engine = chess.engine.SimpleEngine.popen_uci(path)
 
 def set_task_protection(protected):
     url = f"{ECS_AGENT_URI}/task-protection/v1/state"
@@ -241,6 +249,9 @@ def process_message(message, engine, table):
     log_print("All games in message processed")
 
 def main():
+    init_engine()
+    init_resources()
+    
     set_task_protection(True)
 
     messages = fetch_messages()

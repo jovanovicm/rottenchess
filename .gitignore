@@ -3,3 +3,4 @@ samconfig.toml
 other/
 __pycache__/
 .pytest_cache
+stockfish/
