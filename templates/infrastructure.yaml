@@ -115,6 +115,10 @@ Resources:
               Value: !Ref GameQueue
             - Name: PLAYER_STATS_TABLE
               Value: !Ref PlayerStatsTable
+            - Name: ECS_CLUSTER_NAME
+              Value: 'rotten-chess-InfrastructureStack-1Y2FM7R92A26B-ECSCluster-aacsvvpvw9dN'
+            - Name: ECS_SERVICE_NAME
+              Value: 'rotten-chess-InfrastructureStack-1Y2FM7R92A26B-ECSService-9JTBLmVrwlGM'
 
   ECSScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget

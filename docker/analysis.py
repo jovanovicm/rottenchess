@@ -10,6 +10,10 @@ from urllib.request import Request, urlopen
 AWS_REGION = os.getenv('AWS_REGION')
 QUEUE_URL = os.getenv('SQS_QUEUE_URL')
 PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
+ECS_SERVICE_NAME = os.getenv('ECS_SERVICE_NAME')
+ECS_CLUSTER_NAME = os.getenv('ECS_CLUSTER_NAME')
+ECS_AGENT_URI = os.getenv('ECS_AGENT_URI')
+
 ENGINE_PATH = '/usr/games/stockfish'
 
 engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
@@ -21,7 +25,6 @@ def log_print(*args, **kwargs):
     print(*args, **kwargs, flush=True)
 
 def set_task_protection(protected):
-    ECS_AGENT_URI = os.getenv('ECS_AGENT_URI')
     url = f"{ECS_AGENT_URI}/task-protection/v1/state"
     data = json.dumps({
         "protectionEnabled": protected
@@ -36,26 +39,37 @@ def set_task_protection(protected):
 
 def update_player_stats(player, stats, year, month, game_info, table, total_games_increment):
     keys = {'username': player}
-    expression_attribute_values = {":empty_map": {}, ":zero": 0, ":inc_games": total_games_increment}
 
-    # Initialize the paths for various attributes including total_games
-    initialize_paths = [
+    # Initialize paths
+    initialize_map_paths = [
         "SET game_stats = if_not_exists(game_stats, :empty_map)",
         f"SET game_stats.{year} = if_not_exists(game_stats.{year}, :empty_map)",
         f"SET game_stats.{year}.player_total = if_not_exists(game_stats.{year}.player_total, :empty_map)",
         f"SET game_stats.{year}.worst_game = if_not_exists(game_stats.{year}.worst_game, :empty_map)",
-        f"SET game_stats.{year}.total_games = if_not_exists(game_stats.{year}.total_games, :zero)",
         f"SET game_stats.{year}.{month} = if_not_exists(game_stats.{year}.{month}, :empty_map)",
         f"SET game_stats.{year}.{month}.player_total = if_not_exists(game_stats.{year}.{month}.player_total, :empty_map)",
-        f"SET game_stats.{year}.{month}.worst_game = if_not_exists(game_stats.{year}.{month}.worst_game, :empty_map)",
+        f"SET game_stats.{year}.{month}.worst_game = if_not_exists(game_stats.{year}.{month}.worst_game, :empty_map)"
+    ]
+
+    initialize_zero_paths = [
+        f"SET game_stats.{year}.total_games = if_not_exists(game_stats.{year}.total_games, :zero)",
         f"SET game_stats.{year}.{month}.total_games = if_not_exists(game_stats.{year}.{month}.total_games, :zero)"
     ]
 
-    for expr in initialize_paths:
+    # Apply map initializations
+    for expr in initialize_map_paths:
         table.update_item(
             Key=keys,
             UpdateExpression=expr,
-            ExpressionAttributeValues=expression_attribute_values
+            ExpressionAttributeValues={":empty_map": {}}
+        )
+
+    # Apply zero initializations
+    for expr in initialize_zero_paths:
+        table.update_item(
+            Key=keys,
+            UpdateExpression=expr,
+            ExpressionAttributeValues={":zero": 0}
         )
 
     # Update the total_games
@@ -238,7 +252,7 @@ def main():
     log_print('TASK COMPLETE')
 
     set_task_protection(False)
-    decrease_task_count('rotten-chess-game-analysis', 'rotten-chess-ecs-service')
+    decrease_task_count(ECS_CLUSTER_NAME, ECS_SERVICE_NAME)
 
 if __name__ == '__main__':
     main()
