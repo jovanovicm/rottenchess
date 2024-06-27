@@ -1,0 +1,79 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  determine-tests:
+    runs-on: ubuntu-latest
+    outputs:
+      run-analysis-tests: ${{ steps.check-files.outputs.run-analysis-tests }}
+      run-function-tests: ${{ steps.check-files.outputs.run-function-tests }}
+    steps:
+    - uses: actions/checkout@v3
+    - id: check-files
+      run: |
+        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "analysis"; then
+          echo "run-analysis-tests=true" >> $GITHUB_OUTPUT
+        else
+          echo "run-analysis-tests=false" >> $GITHUB_OUTPUT
+        fi
+        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "functions"; then
+          echo "run-function-tests=true" >> $GITHUB_OUTPUT
+        else
+          echo "run-function-tests=false" >> $GITHUB_OUTPUT
+        fi
+
+  test-and-revert:
+    needs: determine-tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        ref: main
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Install Stockfish
+      if: needs.determine-tests.outputs.run-analysis-tests == 'true'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y stockfish
+
+    - name: Run analysis tests
+      if: needs.determine-tests.outputs.run-analysis-tests == 'true'
+      run: |
+        pytest tests/analysis_tests
+      continue-on-error: true
+      id: pytest-analysis
+
+    - name: Run function tests
+      if: needs.determine-tests.outputs.run-function-tests == 'true'
+      run: |
+        pytest tests/function_tests
+      continue-on-error: true
+      id: pytest-functions
+
+    - name: Check test results
+      if: steps.pytest-analysis.outcome == 'failure' || steps.pytest-functions.outcome == 'failure'
+      run: |
+        git config --global user.name 'github-actions'
+        git config --global user.email 'github-actions@github.com'
+        git revert -m 1 HEAD
+        git push origin main
+
+    - name: Success message
+      if: steps.pytest-analysis.outcome != 'failure' && steps.pytest-functions.outcome != 'failure'
+      run: echo "All run tests passed successfully"

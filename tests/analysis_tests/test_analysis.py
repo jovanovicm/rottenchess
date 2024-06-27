@@ -17,7 +17,7 @@ def chess_engine():
     if os.getenv('CI', 'false').lower() == 'true':
         path = '/usr/games/stockfish'
     else:
-        path = 'stockfish/stockfish-windows-x86-64-avx2.exe'
+        path = 'analysis_tests/stockfish/stockfish-windows-x86-64-avx2.exe'
 
     engine = chess.engine.SimpleEngine.popen_uci(path)
     yield engine
@@ -91,12 +91,12 @@ def test_process_message(dynamodb_table, chess_engine):
             "white": "player1",
             "black": "player2",
             "moves": "e4 e5 Qh5 Nc6 Bc4 Nf6 Qxf7#",
-            "end_time": 1717200000,
+            "end_time": 1718452800,
             "game_url": "https://lichess.org/test-game-1"
         }])
     }
 
-    end_time = datetime.fromtimestamp(1717200000)
+    end_time = datetime.fromtimestamp(1718452800)
 
     process_message(message, chess_engine, dynamodb_table)
 
