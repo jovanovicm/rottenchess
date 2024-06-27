@@ -11,11 +11,26 @@ def lambda_handler(event, context):
     response = table.scan()
     items = response['Items']
 
-    usernames = [item['username'] for item in items]
-    
+    result = {
+        'leaderboard_players': {
+            'active': [],
+            'inactive': []
+        },
+        'personality_players': []
+    }
+
+    for item in items:
+        if item['is_leaderboard_player']:
+            if item['active']:
+                result['leaderboard_players']['active'].append(item['username'])
+            else:
+                result['leaderboard_players']['inactive'].append(item['username'])
+        else:
+            result['personality_players'].append(item['username'])
+
     return {
         'statusCode': 200,
-        'body': json.dumps(usernames),
+        'body': json.dumps(result),
         'headers': {
             'Content-Type': 'application/json'
         }
