@@ -82,21 +82,22 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dic
 
     # Check for players no longer on the leaderboard
     for player in tracked_dict:
-        username = player['username']
-        if username not in leaderboard_usernames:
-            stats_table.update_item(
-                Key={'username': username},
-                UpdateExpression="SET active = :a",
-                ExpressionAttributeValues={
-                    ':a': False
-                }
-            )
-            print(f"Marked {username} as inactive in PlayerStats table due to leaving the leaderboard")
+        if player['is_leaderboard_player'] == True: 
+            username = player['username']
+            if username not in leaderboard_usernames:
+                stats_table.update_item(
+                    Key={'username': username},
+                    UpdateExpression="SET active = :a",
+                    ExpressionAttributeValues={
+                        ':a': False
+                    }
+                )
+                print(f"Marked {username} as inactive in PlayerStats table due to leaving the leaderboard")
 
-        # Remove tracking after being inactive leaderboard player for 30 days
-        if player.get('last_seen', '01-01-2000') <= remove_period and player['is_leaderboard_player']:
-            tracked_table.delete_item(Key={'username': username})
-            print(f"Deleted {username} from TrackedPlayers table due to inactivity")
+            # Remove tracking after being inactive leaderboard player for 30 days
+            if player.get('last_seen', '01-01-2000') <= remove_period:
+                tracked_table.delete_item(Key={'username': username})
+                print(f"Deleted {username} from TrackedPlayers table due to inactivity")
 
 def fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, usernames, days_ago=1):
     base_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  # Today at midnight GMT
@@ -129,10 +130,10 @@ def get_leaderboard(USER_AGENT_EMAIL):
 
                     leaderboard_player = {
                         "username": player["username"].lower(),
-                        "player_name": player["name"],
+                        "player_name": player.get("name", "Unknown Player"),
                         "player_rank": player["rank"],
                         "rating": player["score"],
-                        "player_title": player["title"],
+                        "player_title": player.get("title", "None"),
                         "country": country_code,
                         "last_seen": None,
                         "is_leaderboard_player": None
@@ -221,8 +222,8 @@ def store_game_imports(GAME_IMPORTS_TABLE, games):
         for game in games:
             item = {
                 "game_uuid": game["game_uuid"],  # Primary Key
-                "white": game["white"]["username"],
-                "black": game["black"]["username"],
+                "white": game["white"]["username"].lower(),
+                "black": game["black"]["username"].lower(),
                 "game_url": game["game_url"],
                 "end_time": game["end_time"],
                 "time_class": game["time_class"],
