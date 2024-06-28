@@ -20,6 +20,7 @@ Resources:
           - http://localhost:3000
         AllowMethods:
           - GET
+          - POST
         AllowHeaders:
           - Content-Type
           - X-Amz-Date
@@ -45,7 +46,7 @@ Resources:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref RottenChessAPI
-      RouteKey: GET /players/{username}
+      RouteKey: POST /players/stats
       AuthorizationType: NONE
       Target: !Join 
         - '/'
@@ -69,7 +70,7 @@ Resources:
       FunctionName: !Ref GetPlayerStatsFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/players/*
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/POST/players/stats
 
   LambdaInvokePermissionGetPlayers:
     Type: AWS::Lambda::Permission

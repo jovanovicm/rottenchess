@@ -15,27 +15,60 @@ def convert_decimals(item):
 
 def lambda_handler(event, context):
     PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
-
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(PLAYER_STATS_TABLE)
-    username = event['pathParameters']['username']
+
+    query_params = event.get('queryStringParameters', {})
     
-    response = table.get_item(Key={'username': username})
-    
-    if 'Item' in response:
-        item = convert_decimals(response['Item'])
+    if query_params.get('batch') == 'true':
+        body = json.loads(event['body'])
+        usernames = body['usernames']
+        
+        keys = [{'username': username} for username in usernames]
+        response = dynamodb.batch_get_item(
+            RequestItems={
+                PLAYER_STATS_TABLE: {
+                    'Keys': keys
+                }
+            }
+        )
+        items = response['Responses'].get(PLAYER_STATS_TABLE, [])
+        converted_items = [convert_decimals(item) for item in items]
+
         return {
             'statusCode': 200,
-            'body': json.dumps(item),
+            'body': json.dumps(converted_items),
             'headers': {
                 'Content-Type': 'application/json'
             }
         }
-    else:
-        return {
-            'statusCode': 404,
-            'body': json.dumps({'error': 'Player not found'}),
-            'headers': {
-                'Content-Type': 'application/json'
+    
+    username = query_params.get('username')
+    if username:
+        response = table.get_item(Key={'username': username})
+
+        if 'Item' in response:
+            item = convert_decimals(response['Item'])
+            return {
+                'statusCode': 200,
+                'body': json.dumps(item),
+                'headers': {
+                    'Content-Type': 'application/json'
+                }
             }
+        else:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({'error': 'Player not found'}),
+                'headers': {
+                    'Content-Type': 'application/json'
+                }
+            }
+    
+    return {
+        'statusCode': 400,
+        'body': json.dumps({'error': 'Invalid request'}),
+        'headers': {
+            'Content-Type': 'application/json'
         }
+    }

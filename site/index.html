@@ -12,15 +12,23 @@
         <p>A leaderboard of blunders, mistakes, and inaccuracies!</p>
     </header>
     <div class="filter-bar">
-        <button class="pill" onclick="filterLeaderboard('all', this)" id="all">All</button>
-        <button class="pill" onclick="filterLeaderboard('top50', this)">Top 50 Players</button>
-        <button class="pill" onclick="filterLeaderboard('personality', this)">Chess Personalities</button>
-        <input type="text" class="pill search-box" oninput="filterByName()" placeholder="Search Player...">
+        <div class="left-filters">
+            <button class="pill" onclick="filterLeaderboard('all', this)" id="all">All</button>
+            <button class="pill" onclick="filterLeaderboard('top50', this)">Top 50 Players</button>
+            <button class="pill" onclick="filterLeaderboard('personality', this)">Chess Personalities</button>
+            <input type="text" class="pill search-box" oninput="filterByName()" placeholder="Search Player...">
+        </div>
+        <div class="right-filters">
+            <select id="year-selector" onchange="updateLeaderboard()"></select>
+            <select id="month-selector" onchange="updateLeaderboard()">
+                <option value="all">All Months</option>
+            </select>
+        </div>
     </div>
     <table class="leaderboard">
         <thead>
             <tr>
-                <th onclick="sortTable(0, this)" class="ranking-column">
+                <th class="ranking-column" onclick="sortTable(0, this)">
                     Ranking
                     <div class="sort-arrows">
                         <img src="icons/arrow-up.png" class="sort-arrow up-arrow">
@@ -75,98 +83,9 @@
             </tr>
         </thead>        
         <tbody id="leaderboard-body">
-            <tr data-category="top50">
-                <td>1</td>
-                <td><div class="leaderboard-chess-title">GM</div> Alexei Boronin</td>
-                <td>2780</td>
-                <td>3</td>
-                <td>5</td>
-                <td>2</td>
-                <td>0.10</td>
-            </tr>
-            <tr data-category="personality">
-                <td>2</td>
-                <td><div class="leaderboard-chess-title">IM</div> Fiona Steil-Antoni</td>
-                <td>2400</td>
-                <td>2</td>
-                <td>3</td>
-                <td>1</td>
-                <td>0.06</td>
-            </tr>
-            <tr data-category="top50">
-                <td>3</td>
-                <td><div class="leaderboard-chess-title">GM</div> Hikaru Nakamura</td>
-                <td>2750</td>
-                <td>4</td>
-                <td>1</td>
-                <td>3</td>
-                <td>0.08</td>
-            </tr>
-            <tr data-category="personality">
-                <td>4</td>
-                <td><div class="leaderboard-chess-title">NM</div> Tania Sachdev</td>
-                <td>2380</td>
-                <td>1</td>
-                <td>2</td>
-                <td>2</td>
-                <td>0.05</td>
-            </tr>
-            <tr data-category="top50">
-                <td>5</td>
-                <td><div class="leaderboard-chess-title">GM</div> Magnus Carlsen</td>
-                <td>2840</td>
-                <td>5</td>
-                <td>6</td>
-                <td>4</td>
-                <td>0.15</td>
-            </tr>
-            <tr data-category="personality">
-                <td>6</td>
-                <td><div class="leaderboard-chess-title">FM</div> Robert Hess</td>
-                <td>2450</td>
-                <td>4</td>
-                <td>4</td>
-                <td>3</td>
-                <td>0.11</td>
-            </tr>
-            <tr data-category="top50">
-                <td>7</td>
-                <td><div class="leaderboard-chess-title">GM</div> Fabiano Caruana</td>
-                <td>2820</td>
-                <td>3</td>
-                <td>2</td>
-                <td>2</td>
-                <td>0.07</td>
-            </tr>
-            <tr data-category="personality">
-                <td>8</td>
-                <td><div class="leaderboard-chess-title">CM</div> Daniel Rensch</td>
-                <td>2200</td>
-                <td>1</td>
-                <td>1</td>
-                <td>1</td>
-                <td>0.03</td>
-            </tr>
-            <tr data-category="top50">
-                <td>9</td>
-                <td><div class="leaderboard-chess-title">GM</div> Ding Liren</td>
-                <td>2790</td>
-                <td>2</td>
-                <td>2</td>
-                <td>1</td>
-                <td>0.04</td>
-            </tr>
-            <tr data-category="personality">
-                <td>10</td>
-                <td><div class="leaderboard-chess-title">GM</div> Levon Aronian</td>
-                <td>2755</td>
-                <td>3</td>
-                <td>3</td>
-                <td>2</td>
-                <td>0.09</td>
-            </tr>
+            <!-- This will be populated dynamically by JavaScript -->
         </tbody>
     </table>
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
