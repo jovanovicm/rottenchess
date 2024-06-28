@@ -24,11 +24,27 @@ body {
     margin: 0 auto;
 }
 
-.filter-bar {
+.filter-bar, .date-selectors {
     margin-bottom: 20px;
 }
 
-.pill {
+.filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.left-filters, .right-filters {
+    display: flex;
+    align-items: center;
+}
+
+.right-filters select {
+    margin-left: 10px;
+}
+
+.pill, select, .search-box {
     padding: 10px 20px;
     border: 2px solid #3A4F41; 
     border-radius: 20px;
@@ -47,18 +63,22 @@ body {
 }
 
 .search-box {
-    border: 2px solid #3A4F41;
-    background-color: white;
-    color: #333;
-    padding: 10px;
-    border-radius: 20px;
-    outline: none;
     width: 200px;
 }
 
 .search-box:focus, .search-box:hover {
-    background-color: #f4f4f4;  /* Light background on focus */
+    background-color: #f4f4f4;
     color: #333;
+}
+
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%233A4F41" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+    background-repeat: no-repeat;
+    background-position-x: 95%;
+    background-position-y: 50%;
 }
 
 .leaderboard {
@@ -93,10 +113,10 @@ body {
 }
 
 .division-header {
-    width: 10px; /* Thin vertical line for division */
-    border-left: 2px solid #ddd; /* Solid line as a divider */
-    padding: 0; /* No padding to keep the line thin */
-    cursor: default; /* No pointer cursor on this non-interactive element */
+    width: 10px;
+    border-left: 2px solid #ddd;
+    padding: 0;
+    cursor: default;
 }
 
 .icon-wrapper {
