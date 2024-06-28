@@ -12,7 +12,8 @@ def lambda_handler(event, context):
     usernames = [
         'markoj000',
         'gothamchess',
-        'alexandrabotez', 
+        'alexandrabotez',
+        'supersecret12345',
         'nemsko', 
         'annacramling',
         ]

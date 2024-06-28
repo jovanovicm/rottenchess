@@ -197,6 +197,22 @@ Resources:
       Architectures:
         - x86_64
   
+  BatchGetPlayerStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../functions/api/batch_get_player_stats/
+      Handler: batch_get_player_stats.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-BatchGetPlayerStats
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+
   GetPlayersFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -378,6 +394,10 @@ Outputs:
   GetPlayerStatsFunction:
     Description: "ARN of the GetPlayerStats Lambda function"
     Value: !GetAtt GetPlayerStatsFunction.Arn
+  
+  BatchGetPlayerStatsFunction:
+    Description: "ARN of the BatchGetPlayerStats Lambda function"
+    Value: !GetAtt BatchGetPlayerStatsFunction.Arn
 
   GetPlayersFunction:
     Description: "ARN of the GetPlayers Lambda function"
