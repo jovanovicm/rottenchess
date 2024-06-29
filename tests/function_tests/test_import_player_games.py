@@ -199,3 +199,75 @@ def test_chess_personality_persistence(dynamodb_setup):
     assert 'Item' in response
     assert 'active' not in response['Item']
 
+def test_game_stats_persistence(dynamodb_setup):
+    dynamodb = dynamodb_setup
+    stats_table = dynamodb.Table('PlayerStats')
+
+    # Sample game_stats object
+    game_stats = {
+        "y2024": {
+            "m06": {
+                "player_total": {
+                    "blunders": 2,
+                    "inaccuracies": 13,
+                    "mistakes": 5
+                },
+                "total_games": 5,
+                "worst_game": {
+                    "game_url": "https://www.chess.com/game/live/113170760949",
+                    "magnitude": 13,
+                    "stats": {
+                        "blunders": 1,
+                        "inaccuracies": 6,
+                        "mistakes": 2
+                    }
+                }
+            },
+            "player_total": {
+                "blunders": 2,
+                "inaccuracies": 13,
+                "mistakes": 5
+            },
+            "total_games": 5,
+            "worst_game": {
+                "game_url": "https://www.chess.com/game/live/113170760949",
+                "magnitude": 13,
+                "stats": {
+                    "blunders": 1,
+                    "inaccuracies": 6,
+                    "mistakes": 2
+                }
+            }
+        }
+    }
+
+    # Add a player with game_stats to the PlayerStats table
+    stats_table.put_item(Item={
+        "username": "player_with_stats",
+        "player_name": "Player With Stats",
+        "rating": 2000,
+        "player_title": "FM",
+        "country": "US",
+        "is_leaderboard_player": True,
+        "active": True,
+        "game_stats": game_stats
+    })
+
+    # Run update_player_dbs
+    update_player_dbs('TrackedPlayers', 'PlayerStats', [{
+        "username": "player_with_stats",
+        "player_name": "Player With Stats",
+        "player_rank": 50,
+        "rating": 2050,
+        "player_title": "FM",
+        "country": "US",
+    }], [], '06-20-2024', '05-20-2024')
+
+    # Check if player's data is still in PlayerStats and game_stats is unchanged
+    response = stats_table.get_item(Key={'username': 'player_with_stats'})
+    assert 'Item' in response
+    assert response['Item']['username'] == 'player_with_stats'
+    assert response['Item']['rating'] == 2050
+    assert response['Item']['player_rank'] == 50
+    assert 'game_stats' in response['Item']
+    assert response['Item']['game_stats'] == game_stats
