@@ -146,7 +146,7 @@ function createPlayerRow(playerData) {
   const rmg = calculateRMG(stats, totalGames);
 
   row.innerHTML = `
-        <td>${playerData.player_rank}</td>
+        <td style="display: none;">${playerData.player_rank}</td>
         <td><div class="leaderboard-chess-title">${
           playerData.player_title
         }</div> ${playerData.player_name}</td>
