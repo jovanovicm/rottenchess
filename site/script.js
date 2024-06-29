@@ -145,8 +145,17 @@ function createPlayerRow(playerData) {
   const { stats, totalGames } = getPlayerStats(playerData);
   const rmg = calculateRMG(stats, totalGames);
 
+  const buttons = Array.from(document.getElementsByClassName("pill"));
+  let currentFilter = null;
+  buttons.forEach((button) => {
+    if (button.classList.contains("active")) {
+      currentFilter = button.innerHTML;
+    }
+  });
+
+  const style = currentFilter === "Top 50 Players" ? "" : `"display: none;"`;
   row.innerHTML = `
-        <td style="display: none;">${playerData.player_rank}</td>
+        <td style=${style}>${playerData.player_rank}</td>
         <td><div class="leaderboard-chess-title">${
           playerData.player_title
         }</div> ${playerData.player_name}</td>
