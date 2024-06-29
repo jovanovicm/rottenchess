@@ -62,55 +62,57 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_pla
 
     current_leaderboard_usernames = set()
 
-    # Update TrackedPlayers Table and PlayerStats Table for leaderboard players
     for player in leaderboard_players:
         username = player['username']
         current_leaderboard_usernames.add(username)
         
         # Update TrackedPlayers
-        tracked_table.put_item(
-            Item={
-                'username': username,
-                'last_seen': today,
-                'is_leaderboard_player': True
+        tracked_table.update_item(
+            Key={'username': username},
+            UpdateExpression="SET last_seen = :ls, is_leaderboard_player = :ilp",
+            ExpressionAttributeValues={
+                ':ls': today,
+                ':ilp': True
             }
         )
 
         # Update PlayerStats
-        stats_table.put_item(
-            Item={
-                'username': username,
-                'player_name': player['player_name'],
-                'player_rank': player['player_rank'],
-                'rating': player['rating'],
-                'player_title': player['player_title'],
-                'country': player['country'],
-                'is_leaderboard_player': True,
-                'active': True
+        stats_table.update_item(
+            Key={'username': username},
+            UpdateExpression="SET player_name = :pn, player_rank = :pr, rating = :r, player_title = :pt, country = :c, is_leaderboard_player = :ilp, active = :a",
+            ExpressionAttributeValues={
+                ':pn': player['player_name'],
+                ':pr': player['player_rank'],
+                ':r': player['rating'],
+                ':pt': player['player_title'],
+                ':c': player['country'],
+                ':ilp': True,
+                ':a': True
             }
         )
 
-    # Update TrackedPlayers Table and PlayerStats Table for chess personalities
     for player in chess_personalities:
         username = player['username']
         
         # Update TrackedPlayers
-        tracked_table.put_item(
-            Item={
-                'username': username,
-                'is_leaderboard_player': False
+        tracked_table.update_item(
+            Key={'username': username},
+            UpdateExpression="SET is_leaderboard_player = :ilp",
+            ExpressionAttributeValues={
+                ':ilp': False
             }
         )
 
         # Update PlayerStats
-        stats_table.put_item(
-            Item={
-                'username': username,
-                'player_name': player['player_name'],
-                'rating': player['rating'],
-                'player_title': player['player_title'],
-                'country': player['country'],
-                'is_leaderboard_player': False
+        stats_table.update_item(
+            Key={'username': username},
+            UpdateExpression="SET player_name = :pn, rating = :r, player_title = :pt, country = :c, is_leaderboard_player = :ilp",
+            ExpressionAttributeValues={
+                ':pn': player['player_name'],
+                ':r': player['rating'],
+                ':pt': player['player_title'],
+                ':c': player['country'],
+                ':ilp': False
             }
         )
 
@@ -186,9 +188,6 @@ def get_player_stats(username, USER_AGENT_EMAIL):
                 player_info = get_info(username, USER_AGENT_EMAIL)
                 if player_info:
                     player_info['rating'] = data['chess_blitz']['last']['rating']
-                    # Only set player_rank for leaderboard players
-                    if player_info['is_leaderboard_player'] == False:
-                        player_info['player_rank'] = data['chess_blitz']['last']['rank']
                     return player_info
     except request.URLError as e:
         print(f"Error fetching stats for {username}: {e.reason}")
