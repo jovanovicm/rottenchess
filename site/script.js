@@ -5,13 +5,7 @@ let currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
 
 document.addEventListener("DOMContentLoaded", function() {
     const allPill = document.getElementById('all');
-    allPill.classList.add('active');
     filterLeaderboard('all', allPill);
-
-    const rankingColumn = document.querySelector('.ranking-column');
-    rankingColumn.setAttribute('data-sort-direction', 'asc');
-    sortTable(0, rankingColumn, true);
-
     setupYearMonthSelectors();
     updateLeaderboard();
 });
@@ -65,7 +59,7 @@ async function fetchPlayersList() {
 
 async function fetchPlayersBatch(usernames) {
     try {
-        const response = await fetch('https://api.rottenchess.com/players/stats?batch=true', {
+        const response = await fetch('https://api.rottenchess.com/players/batch', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -127,8 +121,7 @@ async function updateLeaderboard() {
 
     hideLoading();
     applyFilters();
-    const rankingColumn = document.querySelector('.ranking-column');
-    sortTable(0, rankingColumn, true);
+    sortTableByCurrentFilter();
 }
 
 function chunkArray(array, size) {
@@ -181,19 +174,23 @@ function calculateRMG(stats, totalGames) {
 
 function filterLeaderboard(category, element) {
     const pills = document.querySelectorAll('.pill');
-    const isActive = element.classList.contains('active');
-
     pills.forEach(pill => pill.classList.remove('active'));
+    element.classList.add('active');
+    currentFilter = category;
 
-    if (isActive && category !== 'all') {
-        document.getElementById('all').classList.add('active');
-        currentFilter = 'all';
+    const rankingColumn = document.querySelector('.ranking-column');
+    const rankingCells = document.querySelectorAll('td:first-child');
+
+    if (category === 'top50') {
+        rankingColumn.style.display = '';
+        rankingCells.forEach(cell => cell.style.display = '');
     } else {
-        element.classList.add('active');
-        currentFilter = category;
+        rankingColumn.style.display = 'none';
+        rankingCells.forEach(cell => cell.style.display = 'none');
     }
 
     applyFilters();
+    sortTableByCurrentFilter();
 }
 
 function applyFilters() {
@@ -215,48 +212,47 @@ function filterByName() {
     applyFilters();
 }
 
-function sortTable(columnIndex, headerElement, initial = false) {
+function sortTableByCurrentFilter() {
+    const table = document.querySelector('.leaderboard');
+    const headers = table.querySelectorAll('th');
+
+    if (currentFilter === 'top50') {
+        sortTable(0, headers[0]);  // Sort by ranking
+    } else {
+        sortTable(6, headers[6]);  // Sort by RM/G
+    }
+}
+
+function sortTable(columnIndex, headerElement) {
     let table = document.getElementById("leaderboard-body");
     let rows = Array.from(table.rows);
-    let direction = headerElement.getAttribute('data-sort-direction');
-    const isRankingColumn = columnIndex === 0;
+    let direction = headerElement.getAttribute('data-sort-direction') || 'desc';
 
-    if (initial) {
-        rows.sort((a, b) => {
-            let valA = parseFloat(a.cells[columnIndex].textContent.trim());
-            let valB = parseFloat(b.cells[columnIndex].textContent.trim());
-            return valA - valB;
-        });
-    } else {
-        if (isRankingColumn) {
-            direction = direction === 'asc' ? 'desc' : 'asc';
+    headerElement.setAttribute('data-sort-direction', direction === 'asc' ? 'desc' : 'asc');
+
+    rows.sort((a, b) => {
+        let cellA = a.cells[columnIndex].textContent.trim();
+        let cellB = b.cells[columnIndex].textContent.trim();
+
+        if (columnIndex === 0) {  // Ranking column
+            return direction === 'asc' ? 
+                parseFloat(cellA) - parseFloat(cellB) : 
+                parseFloat(cellB) - parseFloat(cellA);
         } else {
-            if (!direction || direction === 'default') {
-                direction = 'desc';
-            } else if (direction === 'desc') {
-                direction = 'asc';
-            } else if (direction === 'asc') {
-                direction = 'default';
-            }
+            return direction === 'asc' ? 
+                parseFloat(cellB) - parseFloat(cellA) : 
+                parseFloat(cellA) - parseFloat(cellB);
         }
-
-        headerElement.setAttribute('data-sort-direction', direction);
-
-        if (direction !== 'default') {
-            rows.sort((a, b) => {
-                let valA = parseFloat(a.cells[columnIndex].textContent.trim());
-                let valB = parseFloat(b.cells[columnIndex].textContent.trim());
-                return (direction === 'asc' ? valA - valB : valB - valA);
-            });
-        } else {
-            rows.sort((a, b) => {
-                let rankA = parseFloat(a.cells[0].textContent.trim());
-                let rankB = parseFloat(b.cells[0].textContent.trim());
-                return rankA - rankB;
-            });
-            headerElement.removeAttribute('data-sort-direction');
-        }
-    }
+    });
 
     rows.forEach(row => table.appendChild(row));
+
+    // Update sort arrow visibility
+    const arrows = headerElement.querySelectorAll('.sort-arrow');
+    arrows.forEach(arrow => arrow.classList.remove('active'));
+    if (direction === 'asc') {
+        headerElement.querySelector('.up-arrow').classList.add('active');
+    } else {
+        headerElement.querySelector('.down-arrow').classList.add('active');
+    }
 }

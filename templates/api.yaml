@@ -4,6 +4,8 @@ Description: Rotten Chess API Resources
 Parameters:
   GetPlayerStatsFunction:
     Type: String
+  BatchGetPlayerStatsFunction:
+    Type: String
   GetPlayersFunction:
     Type: String
 
@@ -33,6 +35,14 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlayerStatsFunction}/invocations
       PayloadFormatVersion: "2.0"
+  
+  BatchGetPlayerStatsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BatchGetPlayerStatsFunction}/invocations
+      PayloadFormatVersion: "2.0"
 
   GetPlayersIntegration:
     Type: AWS::ApiGatewayV2::Integration
@@ -46,12 +56,23 @@ Resources:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref RottenChessAPI
-      RouteKey: POST /players/stats
+      RouteKey: GET /players/{username}
       AuthorizationType: NONE
       Target: !Join 
         - '/'
         - - 'integrations'
           - !Ref GetPlayerStatsIntegration
+  
+  BatchGetPlayerStatsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      RouteKey: POST /players/batch
+      AuthorizationType: NONE
+      Target: !Join 
+        - '/'
+        - - 'integrations'
+          - !Ref BatchGetPlayerStatsIntegration
 
   GetPlayersRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -70,7 +91,15 @@ Resources:
       FunctionName: !Ref GetPlayerStatsFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/POST/players/stats
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/players/*
+  
+  LambdaInvokePermissionBatchGetPlayerStats:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref BatchGetPlayerStatsFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/POST/players/batch
 
   LambdaInvokePermissionGetPlayers:
     Type: AWS::Lambda::Permission

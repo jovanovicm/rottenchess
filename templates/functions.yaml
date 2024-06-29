@@ -83,23 +83,6 @@ Resources:
       Architectures:
         - x86_64
   
-  ImportPersonalityPlayersFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ../functions/import_personality_players/
-      Handler: import_personality_players.lambda_handler
-      Runtime: python3.12
-      FunctionName: rotten-chess-ImportPersonalityPlayers
-      Timeout: 60
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Environment:
-        Variables:
-          TRACKED_PLAYERS_TABLE: !Ref TrackedPlayersTable
-          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
-          SECRET_ARN: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:rotten-chess/user-agent-NKXP8b
-      Architectures:
-        - x86_64   
-  
   EnqueueDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -197,6 +180,22 @@ Resources:
       Architectures:
         - x86_64
   
+  BatchGetPlayerStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../functions/api/batch_get_player_stats/
+      Handler: batch_get_player_stats.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-BatchGetPlayerStats
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+
   GetPlayersFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -378,6 +377,10 @@ Outputs:
   GetPlayerStatsFunction:
     Description: "ARN of the GetPlayerStats Lambda function"
     Value: !GetAtt GetPlayerStatsFunction.Arn
+  
+  BatchGetPlayerStatsFunction:
+    Description: "ARN of the BatchGetPlayerStats Lambda function"
+    Value: !GetAtt BatchGetPlayerStatsFunction.Arn
 
   GetPlayersFunction:
     Description: "ARN of the GetPlayers Lambda function"

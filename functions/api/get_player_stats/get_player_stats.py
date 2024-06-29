@@ -18,57 +18,36 @@ def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(PLAYER_STATS_TABLE)
 
-    query_params = event.get('queryStringParameters', {})
-    
-    if query_params.get('batch') == 'true':
-        body = json.loads(event['body'])
-        usernames = body['usernames']
-        
-        keys = [{'username': username} for username in usernames]
-        response = dynamodb.batch_get_item(
-            RequestItems={
-                PLAYER_STATS_TABLE: {
-                    'Keys': keys
-                }
-            }
-        )
-        items = response['Responses'].get(PLAYER_STATS_TABLE, [])
-        converted_items = [convert_decimals(item) for item in items]
+    path_params = event.get('pathParameters', {})
+    username = path_params.get('username')
 
+    if username == 'batch':
+        return {
+        'statusCode': 405,
+        'body': json.dumps({'error': 'Method not allowed'}),
+        'headers': {'Content-Type': 'application/json'}
+        }
+    
+    if not username:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Username is required'}),
+            'headers': {'Content-Type': 'application/json'}
+        }
+
+    response = table.get_item(Key={'username': username})
+
+    if 'Item' in response:
+        item = convert_decimals(response['Item'])
         return {
             'statusCode': 200,
-            'body': json.dumps(converted_items),
-            'headers': {
-                'Content-Type': 'application/json'
-            }
+            'body': json.dumps(item),
+            'headers': {'Content-Type': 'application/json'}
         }
     
-    username = query_params.get('username')
-    if username:
-        response = table.get_item(Key={'username': username})
-
-        if 'Item' in response:
-            item = convert_decimals(response['Item'])
-            return {
-                'statusCode': 200,
-                'body': json.dumps(item),
-                'headers': {
-                    'Content-Type': 'application/json'
-                }
-            }
-        else:
-            return {
-                'statusCode': 404,
-                'body': json.dumps({'error': 'Player not found'}),
-                'headers': {
-                    'Content-Type': 'application/json'
-                }
-            }
-    
-    return {
-        'statusCode': 400,
-        'body': json.dumps({'error': 'Invalid request'}),
-        'headers': {
-            'Content-Type': 'application/json'
+    else:
+        return {
+            'statusCode': 404,
+            'body': json.dumps({'error': 'Player not found'}),
+            'headers': {'Content-Type': 'application/json'}
         }
-    }
