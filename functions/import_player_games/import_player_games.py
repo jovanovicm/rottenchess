@@ -68,7 +68,7 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_pla
         current_leaderboard_usernames.add(username)
         
         # Update TrackedPlayers
-        tracked_table.put_item(
+        tracked_table.update_item(
             Item={
                 'username': username,
                 'last_seen': today,
@@ -77,7 +77,7 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_pla
         )
 
         # Update PlayerStats
-        stats_table.put_item(
+        stats_table.update_item(
             Item={
                 'username': username,
                 'player_name': player['player_name'],
@@ -95,7 +95,7 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_pla
         username = player['username']
         
         # Update TrackedPlayers
-        tracked_table.put_item(
+        tracked_table.update_item(
             Item={
                 'username': username,
                 'is_leaderboard_player': False
@@ -103,7 +103,7 @@ def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_pla
         )
 
         # Update PlayerStats
-        stats_table.put_item(
+        stats_table.update_item(
             Item={
                 'username': username,
                 'player_name': player['player_name'],
@@ -186,9 +186,6 @@ def get_player_stats(username, USER_AGENT_EMAIL):
                 player_info = get_info(username, USER_AGENT_EMAIL)
                 if player_info:
                     player_info['rating'] = data['chess_blitz']['last']['rating']
-                    # Only set player_rank for leaderboard players
-                    if player_info['is_leaderboard_player'] == False:
-                        player_info['player_rank'] = data['chess_blitz']['last']['rank']
                     return player_info
     except request.URLError as e:
         print(f"Error fetching stats for {username}: {e.reason}")
