@@ -15,12 +15,12 @@ jobs:
     - uses: actions/checkout@v3
     - id: check-files
       run: |
-        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "analysis"; then
+        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^analysis/"; then
           echo "run-analysis-tests=true" >> $GITHUB_OUTPUT
         else
           echo "run-analysis-tests=false" >> $GITHUB_OUTPUT
         fi
-        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "functions"; then
+        if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^functions/"; then
           echo "run-function-tests=true" >> $GITHUB_OUTPUT
         else
           echo "run-function-tests=false" >> $GITHUB_OUTPUT
@@ -36,21 +36,23 @@ jobs:
       with:
         ref: main
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
     - name: Install Stockfish
       if: needs.determine-tests.outputs.run-analysis-tests == 'true'
       run: |
         sudo apt-get update
         sudo apt-get install -y stockfish
+
+    - name: Set up Python
+      if: needs.determine-tests.outputs.run-analysis-tests == 'true' || needs.determine-tests.outputs.run-function-tests == 'true'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      if: needs.determine-tests.outputs.run-analysis-tests == 'true' || needs.determine-tests.outputs.run-function-tests == 'true'
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
     - name: Run analysis tests
       if: needs.determine-tests.outputs.run-analysis-tests == 'true'
