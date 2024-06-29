@@ -14,11 +14,20 @@ def lambda_handler(event, context):
     today = datetime.now().strftime("%m-%d-%Y")
     remove_period = (datetime.now() - timedelta(days=30)).strftime("%m-%d-%Y")
 
-    # Fetch current leaderboard
-    leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL)
+    # Chess Personalities + me
+    chess_personalities = [
+        'markoj000',
+        'gothamchess',
+        'alexandrabotez',
+        'supersecret12345',
+        'nemsko', 
+        'annacramling',
+    ]
 
-    # Update tracked players and stats
-    update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dict, today, remove_period)
+    leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL)
+    chess_personalities_info = get_players_info(chess_personalities, USER_AGENT_EMAIL)
+
+    update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dict, chess_personalities_info, today, remove_period)
 
     dynamodb = boto3.resource('dynamodb')
     tracked_dict = get_tracked_dict(TRACKED_PLAYERS_TABLE, dynamodb)
@@ -44,76 +53,85 @@ def get_secret():
 
     return secret
 
-def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_dict, today, remove_period):
+def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_players, chess_personalities, today, remove_period):
     dynamodb = boto3.resource('dynamodb')
     tracked_table = dynamodb.Table(TRACKED_PLAYERS_TABLE)
     stats_table = dynamodb.Table(PLAYER_STATS_TABLE)
 
     tracked_dict = get_tracked_dict(TRACKED_PLAYERS_TABLE, dynamodb)
 
-    leaderboard_usernames = {player['username'] for player in leaderboard_dict}
+    current_leaderboard_usernames = set()
 
-    # Update TrackedPlayers Table
-    with tracked_table.batch_writer() as tracked_batch:
-        for player in leaderboard_dict:
-            username = player['username']
-            tracked_batch.put_item(
-                Item={
-                    'username': username,
-                    'last_seen': today,
-                    'is_leaderboard_player': True
-                }
-            )
+    # Update TrackedPlayers Table and PlayerStats Table for leaderboard players
+    for player in leaderboard_players:
+        username = player['username']
+        current_leaderboard_usernames.add(username)
+        
+        # Update TrackedPlayers
+        tracked_table.put_item(
+            Item={
+                'username': username,
+                'last_seen': today,
+                'is_leaderboard_player': True
+            }
+        )
 
-    # Update PlayerStats Table
-    with stats_table.batch_writer() as stats_batch:
-        for player in leaderboard_dict:
-            username = player['username']
-            stats_batch.put_item(
-                Item={
-                    'username': username,
-                    'player_name': player['player_name'],
-                    'player_rank': player['player_rank'],
-                    'rating': player['rating'],
-                    'player_title': player['player_title'],
-                    'country': player['country'],
-                    'is_leaderboard_player': True,
-                    'active': True
-                }
-            )
+        # Update PlayerStats
+        stats_table.put_item(
+            Item={
+                'username': username,
+                'player_name': player['player_name'],
+                'player_rank': player['player_rank'],
+                'rating': player['rating'],
+                'player_title': player['player_title'],
+                'country': player['country'],
+                'is_leaderboard_player': True,
+                'active': True
+            }
+        )
+
+    # Update TrackedPlayers Table and PlayerStats Table for chess personalities
+    for player in chess_personalities:
+        username = player['username']
+        
+        # Update TrackedPlayers
+        tracked_table.put_item(
+            Item={
+                'username': username,
+                'is_leaderboard_player': False
+            }
+        )
+
+        # Update PlayerStats
+        stats_table.put_item(
+            Item={
+                'username': username,
+                'player_name': player['player_name'],
+                'rating': player['rating'],
+                'player_title': player['player_title'],
+                'country': player['country'],
+                'is_leaderboard_player': False
+            }
+        )
 
     # Check for players no longer on the leaderboard
     for player in tracked_dict:
-        if player['is_leaderboard_player'] == True:
-            username = player['username']
-            if username not in leaderboard_usernames:
-                stats_table.update_item(
-                    Key={'username': username},
-                    UpdateExpression="SET active = :a",
-                    ExpressionAttributeValues={
-                        ':a': False
-                    }
-                )
-                print(f"Marked {username} as inactive in PlayerStats table due to leaving the leaderboard")
+        username = player['username']
+        if player['is_leaderboard_player'] and username not in current_leaderboard_usernames:
+            # Player left the leaderboard
+            stats_table.update_item(
+                Key={'username': username},
+                UpdateExpression="SET active = :a",
+                ExpressionAttributeValues={
+                    ':a': False,
+                }
+            )
+            print(f"Marked {username} as inactive in PlayerStats table due to leaving the leaderboard")
 
-            # Remove tracking after being inactive leaderboard player for 30 days
-            if player.get('last_seen', '01-01-2000') <= remove_period:
+            # Remove tracking after being inactive for 30 days
+            if player['last_seen'] <= remove_period:
                 tracked_table.delete_item(Key={'username': username})
                 print(f"Deleted {username} from TrackedPlayers table due to inactivity")
-
-def fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, usernames):
-    now_datetime = datetime.now(timezone.utc)
-    target_datetime = now_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
-    epoch_time = int(time.mktime(target_datetime.timetuple()))
-
-    print(f"Fetching games from: {target_datetime.strftime('%Y-%m-%d')} (epoch: {epoch_time})")
-
-    for username in usernames:
-        print(f"Fetching games for player: {username}")
-        games = get_games(USER_AGENT_EMAIL, epoch_time, 'blitz', username, target_datetime.strftime('%Y'), target_datetime.strftime('%m'))
-        if games:
-            print(f"Storing games in DynamoDB for player: {username}")
-            store_game_imports(GAME_IMPORTS_TABLE, games)
 
 def get_leaderboard(USER_AGENT_EMAIL):
     url = "https://api.chess.com/pub/leaderboards"
@@ -137,8 +155,6 @@ def get_leaderboard(USER_AGENT_EMAIL):
                         "rating": player["score"],
                         "player_title": player.get("title", "None"),
                         "country": country_code,
-                        "last_seen": None,
-                        "is_leaderboard_player": None
                     }
 
                     leaderboard_dict.append(leaderboard_player)
@@ -148,7 +164,77 @@ def get_leaderboard(USER_AGENT_EMAIL):
     except error.URLError as e:
         print(f"Failed: {e.reason}")
         return None
+
+def get_players_info(usernames, USER_AGENT_EMAIL):
+    players_info = []
+    for username in usernames:
+        player_info = get_player_stats(username, USER_AGENT_EMAIL)
+        if player_info:
+            players_info.append(player_info)
+    return players_info
+
+def get_player_stats(username, USER_AGENT_EMAIL):
+    url = f"https://api.chess.com/pub/player/{username}/stats"
+    headers = {'User-Agent': USER_AGENT_EMAIL}
+
+    req = request.Request(url, headers=headers)
     
+    try:
+        with request.urlopen(req) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                player_info = get_info(username, USER_AGENT_EMAIL)
+                if player_info:
+                    player_info['rating'] = data['chess_blitz']['last']['rating']
+                    # Only set player_rank for leaderboard players
+                    if player_info['is_leaderboard_player'] == False:
+                        player_info['player_rank'] = data['chess_blitz']['last']['rank']
+                    return player_info
+    except request.URLError as e:
+        print(f"Error fetching stats for {username}: {e.reason}")
+        return None
+
+def get_info(username, USER_AGENT_EMAIL):
+    url = f"https://api.chess.com/pub/player/{username}"
+    headers = {'User-Agent': USER_AGENT_EMAIL}
+
+    req = request.Request(url, headers=headers)
+    
+    try:
+        with request.urlopen(req) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                country_code = data["country"].rsplit('/', 1)[-1]
+                return {
+                    "username": data["username"].lower(),
+                    "player_name": data.get("name", "Unknown Player"),
+                    "player_title": data.get("title", "None"),
+                    "country": country_code,
+                }
+    except request.URLError as e:
+        print(f"Error fetching data for {username}: {e.reason}")
+        return None
+
+def get_tracked_dict(TRACKED_PLAYERS_TABLE, dynamodb):
+    table = dynamodb.Table(TRACKED_PLAYERS_TABLE)
+    response = table.scan()
+
+    return response['Items']
+
+def fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, usernames):
+    now_datetime = datetime.now(timezone.utc)
+    target_datetime = now_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+    epoch_time = int(time.mktime(target_datetime.timetuple()))
+
+    print(f"Fetching games from: {target_datetime.strftime('%Y-%m-%d')} (epoch: {epoch_time})")
+
+    for username in usernames:
+        print(f"Fetching games for player: {username}")
+        games = get_games(USER_AGENT_EMAIL, epoch_time, 'blitz', username, target_datetime.strftime('%Y'), target_datetime.strftime('%m'))
+        if games:
+            print(f"Storing games in DynamoDB for player: {username}")
+            store_game_imports(GAME_IMPORTS_TABLE, games)
+
 def get_games(USER_AGENT_EMAIL, MIN_END_TIME, TIME_CLASS, username, year, month):
     url = f"https://api.chess.com/pub/player/{username}/games/{year}/{month}"
     headers = {'User-Agent': USER_AGENT_EMAIL}
@@ -196,26 +282,6 @@ def get_games(USER_AGENT_EMAIL, MIN_END_TIME, TIME_CLASS, username, year, month)
         print(f"Missing expected game data key: {e} - Continuing with other games")
         return None
 
-def get_player_dict(BUCKET_NAME, OBJECT_KEY):
-    try:
-        s3 = boto3.client('s3')
-        response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_KEY)
-
-        return json.loads(response['Body'].read().decode('utf-8'))
-    
-    except json.JSONDecodeError:
-        return []
-
-def get_usernames(player_data):
-    return [player["username"] for player in player_data]
-
-def get_tracked_dict(TRACKED_PLAYERS_TABLE, dynamodb):
-    table = dynamodb.Table(TRACKED_PLAYERS_TABLE)
-    response = table.scan()
-
-    return response['Items']
-
-
 def store_game_imports(GAME_IMPORTS_TABLE, games):
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(GAME_IMPORTS_TABLE)
@@ -233,5 +299,4 @@ def store_game_imports(GAME_IMPORTS_TABLE, games):
             }
             batch.put_item(Item=item)
     print(f"Stored {len(games)} games in DynamoDB.")
-
 
