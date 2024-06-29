@@ -266,27 +266,15 @@ function sortTable(columnIndex, headerElement, toggle = true) {
     direction = direction === "asc" ? "desc" : "asc";
     // Update direction state
     headerElement.setAttribute("data-sort-direction", direction);
-  }
-  // If not toggle, direction state is already correct
+  } // If not toggle set, direction state is correct
 
   rows.sort((a, b) => {
     let cellA = a.cells[columnIndex].textContent.trim();
     let cellB = b.cells[columnIndex].textContent.trim();
 
-    if (columnIndex === 0) {
-      // Ranking column
-
-      // In ranking context, lower number indicates better player
-      // Essentially a reverse sort compared to the other columns
-      return direction === "asc"
-        ? parseFloat(cellA) - parseFloat(cellB)
-        : parseFloat(cellB) - parseFloat(cellA);
-    } else {
-      // Not ranking column
-      return direction === "asc"
-        ? parseFloat(cellB) - parseFloat(cellA)
-        : parseFloat(cellA) - parseFloat(cellB);
-    }
+    return direction === "asc"
+      ? parseFloat(cellA) - parseFloat(cellB)
+      : parseFloat(cellB) - parseFloat(cellA);
   });
 
   rows.forEach((row) => table.appendChild(row));
