@@ -19,8 +19,8 @@
             <input type="text" class="pill search-box" oninput="filterByName()" placeholder="Search Player...">
         </div>
         <div class="right-filters">
-            <select id="year-selector" onchange="updateLeaderboard()"></select>
-            <select id="month-selector" onchange="updateLeaderboard()">
+            <select id="year-selector"></select>
+            <select id="month-selector">
                 <option value="all">All Months</option>
             </select>
         </div>
@@ -28,7 +28,7 @@
     <table class="leaderboard">
         <thead>
             <tr>
-                <th class="ranking-column" onclick="sortTable(0, this)">
+                <th class="ranking-column" onclick="sortTable(0, this)" data-sort-direction="asc">
                     Ranking
                     <div class="sort-arrows">
                         <img src="icons/arrow-up.png" class="sort-arrow up-arrow">
