@@ -17,6 +17,8 @@ Parameters:
     Type: String
   GameQueue:
     Type: String
+  StepFunctionLogGroup:
+    Type: String
 
 Resources:
   LambdaExecutionRole:
@@ -214,7 +216,7 @@ Resources:
   
   # Step Functions
   StateMachine:
-    Type: "AWS::StepFunctions::StateMachine"
+    Type: AWS::StepFunctions::StateMachine
     Properties:
       RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
       LoggingConfiguration:
@@ -222,7 +224,7 @@ Resources:
         IncludeExecutionData: true
         Destinations:
           - CloudWatchLogsLogGroup:
-              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
+              LogGroupArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StepFunctionLogGroup}:*
       DefinitionString: !Sub |
         {
           "Comment": "State machine to import, provision, enqueue, and deprovision.",
@@ -381,13 +383,13 @@ Resources:
 
 Outputs:
   GetPlayerStatsFunction:
-    Description: "ARN of the GetPlayerStats Lambda function"
+    Description: ARN of the GetPlayerStats Lambda function
     Value: !GetAtt GetPlayerStatsFunction.Arn
   
   BatchGetPlayerStatsFunction:
-    Description: "ARN of the BatchGetPlayerStats Lambda function"
+    Description: ARN of the BatchGetPlayerStats Lambda function
     Value: !GetAtt BatchGetPlayerStatsFunction.Arn
 
   GetPlayersFunction:
-    Description: "ARN of the GetPlayers Lambda function"
+    Description: ARN of the GetPlayers Lambda function
     Value: !GetAtt GetPlayersFunction.Arn

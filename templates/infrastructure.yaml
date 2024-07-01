@@ -80,7 +80,7 @@ Resources:
 
   AnalysisLogGroup:
     Type: AWS::Logs::LogGroup
-    Properites:
+    Properties:
       LogGroupName: AnalysisLogGroup
 
   StepFunctionLogGroup:
@@ -90,7 +90,7 @@ Resources:
 
   APILogGroup:
     Type: AWS::Logs::LogGroup
-    Properites:
+    Properties:
       LogGroupName: APILogGroup
   
   ECSCluster:
