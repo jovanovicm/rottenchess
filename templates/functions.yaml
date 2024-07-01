@@ -217,6 +217,12 @@ Resources:
     Type: "AWS::StepFunctions::StateMachine"
     Properties:
       RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
+      LoggingConfiguration:
+        Level: ALL
+        IncludeExecutionData: true
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
       DefinitionString: !Sub |
         {
           "Comment": "State machine to import, provision, enqueue, and deprovision.",
