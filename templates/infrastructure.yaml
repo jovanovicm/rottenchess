@@ -78,8 +78,20 @@ Resources:
   GameQueue:
     Type: AWS::SQS::Queue
 
-  ECSLogGroup:
+  AnalysisLogGroup:
     Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: AnalysisLogGroup
+
+  StepFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: StepFunctionLogGroup
+
+  APILogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: APILogGroup
   
   ECSCluster:
     Type: AWS::ECS::Cluster
@@ -107,7 +119,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref ECSLogGroup
+              awslogs-group: !Ref AnalysisLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
           Environment:
@@ -232,29 +244,37 @@ Resources:
 
 Outputs:
   VPC:
-    Description: "ID of the VPC"
+    Description: ID of the VPC
     Value: !Ref VPC
 
   SecurityGroup:
-    Description: "ID of the Security Group"
+    Description: ID of the Security Group
     Value: !Ref SecurityGroup
   
   PrivateSubnet:
-    Description: "ID of the Private Subnet"
+    Description: ID of the Private Subnet
     Value: !Ref PrivateSubnet
 
   GameImportsTable:
-    Description: "ARN of the Game Imports Table"
+    Description: ARN of the Game Imports Table
     Value: !Ref GameImportsTable
 
   TrackedPlayersTable:
-    Description: "ARN of the Tracked Players Table"
+    Description: ARN of the Tracked Players Table
     Value: !Ref TrackedPlayersTable
 
   PlayerStatsTable:
-    Description: "ARN of the Player Stats Table"
+    Description: ARN of the Player Stats Table
     Value: !Ref PlayerStatsTable
 
   GameQueue:
-    Description: "URL of the Game Queue"
+    Description: URL of the Game Queue
     Value: !Ref GameQueue
+
+  StepFunctionLogGroup:
+    Description: Log Group for Step Function
+    Value: !Ref StepFunctionLogGroup
+  
+  APILogGroup:
+    Description: Log Group for API
+    Value: !Ref APILogGroup

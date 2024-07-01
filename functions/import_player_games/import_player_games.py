@@ -221,20 +221,22 @@ def get_tracked_dict(TRACKED_PLAYERS_TABLE, dynamodb):
     return response['Items']
 
 def fetch_and_store_games(USER_AGENT_EMAIL, GAME_IMPORTS_TABLE, usernames):
-    now_datetime = datetime.now(timezone.utc)
-    target_datetime = now_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
-    epoch_time = int(time.mktime(target_datetime.timetuple()))
+    start_datetime = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=0, minute=0, second=0)
+    start_epoch_time = int(time.mktime(start_datetime.timetuple()))
 
-    print(f"Fetching games from: {target_datetime.strftime('%Y-%m-%d')} (epoch: {epoch_time})")
+    end_datetime = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=23, minute=59, second=59)
+    end_epoch_time = int(time.mktime(end_datetime.timetuple()))
+
+    print(f"Fetching games: Start ({start_datetime.strftime('%Y-%m-%d %H:%M:%S')} epoch: {start_epoch_time}) to End ({end_datetime.strftime('%Y-%m-%d %H:%M:%S')} epoch: {end_epoch_time})")
 
     for username in usernames:
         print(f"Fetching games for player: {username}")
-        games = get_games(USER_AGENT_EMAIL, epoch_time, 'blitz', username, target_datetime.strftime('%Y'), target_datetime.strftime('%m'))
+        games = get_games(USER_AGENT_EMAIL, start_epoch_time, end_epoch_time, 'blitz', username, start_datetime.strftime('%Y'), start_datetime.strftime('%m'))
         if games:
             print(f"Storing games in DynamoDB for player: {username}")
             store_game_imports(GAME_IMPORTS_TABLE, games)
 
-def get_games(USER_AGENT_EMAIL, MIN_END_TIME, TIME_CLASS, username, year, month):
+def get_games(USER_AGENT_EMAIL, MIN_END_TIME, MAX_END_TIME, TIME_CLASS, username, year, month):
     url = f"https://api.chess.com/pub/player/{username}/games/{year}/{month}"
     headers = {'User-Agent': USER_AGENT_EMAIL}
     req = request.Request(url, headers=headers)
@@ -259,7 +261,7 @@ def get_games(USER_AGENT_EMAIL, MIN_END_TIME, TIME_CLASS, username, year, month)
                 for game in data["games"]:
                     # Ensure all required fields are present
                     if all(key in game for key in ['end_time', 'time_class', 'pgn']) and \
-                       game['end_time'] >= MIN_END_TIME and \
+                       MAX_END_TIME <= game['end_time'] >= MIN_END_TIME and \
                        game['time_class'] == TIME_CLASS:
                         game_info = {
                             "game_uuid": game["uuid"],
