@@ -22,6 +22,7 @@ def lambda_handler(event, context):
         'supersecret12345',
         'nemsko', 
         'annacramling',
+        'chessbrah'
     ]
 
     leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL)
@@ -152,7 +153,7 @@ def get_leaderboard(USER_AGENT_EMAIL):
 
                     leaderboard_player = {
                         "username": player["username"].lower(),
-                        "player_name": player.get("name", "Unknown Player"),
+                        "player_name": player.get("name", player["username"].lower()),
                         "player_rank": player["rank"],
                         "rating": player["score"],
                         "player_title": player.get("title", "None"),
@@ -206,7 +207,7 @@ def get_info(username, USER_AGENT_EMAIL):
                 country_code = data["country"].rsplit('/', 1)[-1]
                 return {
                     "username": data["username"].lower(),
-                    "player_name": data.get("name", "Unknown Player"),
+                    "player_name": data.get("name", data["username"].lower()),
                     "player_title": data.get("title", "None"),
                     "country": country_code,
                 }

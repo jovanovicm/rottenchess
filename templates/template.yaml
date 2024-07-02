@@ -20,7 +20,6 @@ Resources:
         TrackedPlayersTable: !GetAtt InfrastructureStack.Outputs.TrackedPlayersTable
         PlayerStatsTable: !GetAtt InfrastructureStack.Outputs.PlayerStatsTable
         GameQueue: !GetAtt InfrastructureStack.Outputs.GameQueue
-        StepFunctionLogGroup: !GetAtt InfrastructureStack.Outputs.StepFunctionLogGroup
 
   APIStack:
     Type: AWS::CloudFormation::Stack
@@ -30,9 +29,3 @@ Resources:
         GetPlayerStatsFunction: !GetAtt FunctionsStack.Outputs.GetPlayerStatsFunction
         BatchGetPlayerStatsFunction: !GetAtt FunctionsStack.Outputs.BatchGetPlayerStatsFunction
         GetPlayersFunction: !GetAtt FunctionsStack.Outputs.GetPlayersFunction
-        APILogGroup: !GetAtt InfrastructureStack.Outputs.APILogGroup
-
-Outputs:
-  APIEndpoint:
-    Description: "The endpoint of the RottenChess API"
-    Value: !GetAtt APIStack.Outputs.ApiEndpoint

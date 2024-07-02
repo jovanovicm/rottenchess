@@ -82,17 +82,8 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: AnalysisLogGroup
+      RetentionInDays: 14
 
-  StepFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: StepFunctionLogGroup
-
-  APILogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: APILogGroup
-  
   ECSCluster:
     Type: AWS::ECS::Cluster
 
@@ -270,11 +261,3 @@ Outputs:
   GameQueue:
     Description: URL of the Game Queue
     Value: !Ref GameQueue
-
-  StepFunctionLogGroup:
-    Description: Log Group for Step Function
-    Value: !Ref StepFunctionLogGroup
-  
-  APILogGroup:
-    Description: Log Group for API
-    Value: !Ref APILogGroup

@@ -8,10 +8,14 @@ Parameters:
     Type: String
   GetPlayersFunction:
     Type: String
-  APILogGroup:
-    Type: String
 
 Resources:
+  APILogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: APILogGroup
+      RetentionInDays: 14
+
   RottenChessAPI:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -154,8 +158,3 @@ Resources:
       AliasTarget:
         DNSName: !GetAtt APIDomain.RegionalDomainName
         HostedZoneId: !GetAtt APIDomain.RegionalHostedZoneId
-
-Outputs:
-  ApiEndpoint:
-    Value: !Sub https://${APIDomain}
-    Description: The endpoint of the PlayerStats API

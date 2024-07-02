@@ -17,8 +17,6 @@ Parameters:
     Type: String
   GameQueue:
     Type: String
-  StepFunctionLogGroup:
-    Type: String
 
 Resources:
   LambdaExecutionRole:
@@ -42,6 +40,8 @@ Resources:
                   - s3:*
                   - sqs:*
                   - ec2:*
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
                   - secretsmanager:GetSecretValue
                 Resource: "*"
   
@@ -67,6 +67,18 @@ Resources:
                 Resource: "*"
 
   # Infrastructure-based Functions
+  ImportPlayerGamesLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ImportPlayerGamesFunction}'
+      RetentionInDays: 14
+
+  EnqueueDynamoDBItemsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${EnqueueDynamoDBItemsFunction}'
+      RetentionInDays: 14
+
   ImportPlayerGamesFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -219,12 +231,6 @@ Resources:
     Type: AWS::StepFunctions::StateMachine
     Properties:
       RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
-      LoggingConfiguration:
-        Level: ALL
-        IncludeExecutionData: true
-        Destinations:
-          - CloudWatchLogsLogGroup:
-              LogGroupArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${StepFunctionLogGroup}:*
       DefinitionString: !Sub |
         {
           "Comment": "State machine to import, provision, enqueue, and deprovision.",
