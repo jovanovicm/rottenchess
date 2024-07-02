@@ -144,6 +144,7 @@ async function updateLeaderboard() {
   }
 
   hideLoading();
+  highlightPlayers();
   applyFilters();
   sortTableByCurrentFilter();
 }
@@ -159,35 +160,46 @@ function chunkArray(array, size) {
 function createPlayerRow(playerData) {
   const row = document.createElement("tr");
   row.setAttribute(
-    "data-category",
-    playerData.is_leaderboard_player ? "top50" : "personality"
+      "data-category",
+      playerData.is_leaderboard_player ? "top50" : "personality"
   );
 
   const { stats, totalGames } = getPlayerStats(playerData);
-  const rmg = calculateRMG(stats, totalGames);
+  const rpg = calculateRPG(stats, totalGames);
 
   const buttons = Array.from(document.getElementsByClassName("pill"));
   let currentFilter = null;
   buttons.forEach((button) => {
-    if (button.classList.contains("active")) {
-      currentFilter = button.innerHTML;
-    }
+      if (button.classList.contains("active")) {
+          currentFilter = button.innerHTML;
+      }
   });
 
-  const style = currentFilter === "Top 50 Players" ? "" : `"display: none;"`;
+  const style = currentFilter === "Top 50 Blitz" ? "" : `"display: none;"`;
+
+  const title = playerData.player_title !== "None" ? `<div class="leaderboard-chess-title">${playerData.player_title}</div>` : "";
+
+  const playerURL = `https://www.chess.com/member/${playerData.username}`;
+  
+  // Dynamically construct the country flag class
+  const countryCodeClass = getCountryCodeClass(playerData.country);
+
   row.innerHTML = `
-        <td style=${style}>${playerData.player_rank}</td>
-        <td><div class="leaderboard-chess-title">${
-          playerData.player_title
-        }</div> ${playerData.player_name}</td>
-        <td>${playerData.rating}</td>
-        <td>${stats.blunders || 0}</td>
-        <td>${stats.mistakes || 0}</td>
-        <td>${stats.inaccuracies || 0}</td>
-        <td>${rmg.toFixed(2)}</td>
-    `;
+      <td style=${style}>${playerData.player_rank}</td>
+      <td>${title} <a href="${playerURL}" target="_blank">${playerData.player_name}</a> <div class="country-flag ${countryCodeClass}"></div></td>
+      <td>${playerData.rating}</td>
+      <td><strong>${rpg.toFixed(2)}</strong></td>
+      <td>${totalGames || 0}</td>
+      <td>${stats.blunders || 0}</td>
+      <td>${stats.mistakes || 0}</td>
+      <td>${stats.inaccuracies || 0}</td>
+  `;
 
   return row;
+}
+
+function getCountryCodeClass(country) {
+  return `country-${country.toLowerCase()}`;
 }
 
 function getPlayerStats(playerData) {
@@ -209,11 +221,11 @@ function getPlayerStats(playerData) {
   return { stats, totalGames };
 }
 
-function calculateRMG(stats, totalGames) {
+function calculateRPG(stats, totalGames) {
   if (!totalGames || totalGames === 0) return 0;
   return (
-    ((stats.blunders || 0) +
-      (stats.mistakes || 0) +
+    (((stats.blunders || 0) * 3) +
+      ((stats.mistakes || 0) * 2) +
       (stats.inaccuracies || 0)) /
     totalGames
   );
@@ -272,7 +284,7 @@ async function sortTableByCurrentFilter() {
     // Therefore, do not toggle ascending/descending
     sortTable(0, headers[0], false); // Sort by ranking
   } else {
-    sortTable(6, headers[6], false); // Sort by RM/G
+    sortTable(3, headers[3], false); // Sort by RP/G
   }
 }
 
@@ -308,4 +320,13 @@ function sortTable(columnIndex, headerElement, toggle = true) {
   } else {
     headerElement.querySelector(".down-arrow").classList.add("active");
   }
+}
+
+function highlightPlayers() {
+  const rows = document.querySelectorAll("#leaderboard-body tr");
+  rows.forEach((row) => {
+    if (row.getAttribute("data-category") === "personality") {
+      row.style.backgroundColor = "#EDEDF5"; 
+    }
+  });
 }
