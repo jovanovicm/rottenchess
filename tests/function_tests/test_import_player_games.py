@@ -271,3 +271,56 @@ def test_game_stats_persistence(dynamodb_setup):
     assert response['Item']['player_rank'] == 50
     assert 'game_stats' in response['Item']
     assert response['Item']['game_stats'] == game_stats
+
+def test_personality_to_leaderboard_player(dynamodb_setup):
+    dynamodb = dynamodb_setup
+    tracked_table = dynamodb.Table('TrackedPlayers')
+    stats_table = dynamodb.Table('PlayerStats')
+
+    # Step 1: Add the player as a personality
+    update_player_dbs('TrackedPlayers', 'PlayerStats', [], [{
+        "username": "personality_player",
+        "player_name": "Personality Player",
+        "rating": 2200,
+        "player_title": "IM",
+        "country": "CA",
+    }], '06-18-2024', '05-18-2024')
+
+    # Check if personality was added to TrackedPlayers
+    response = tracked_table.get_item(Key={'username': 'personality_player'})
+    assert 'Item' in response
+    assert response['Item']['username'] == 'personality_player'
+    assert response['Item']['is_leaderboard_player'] == False
+
+    # Check if personality was added to PlayerStats
+    response = stats_table.get_item(Key={'username': 'personality_player'})
+    assert 'Item' in response
+    assert response['Item']['username'] == 'personality_player'
+    assert 'active' not in response['Item']
+    assert 'player_rank' not in response['Item']
+
+    # Step 2: Update the player to a leaderboard player
+    update_player_dbs('TrackedPlayers', 'PlayerStats', [{
+        "username": "personality_player",
+        "player_name": "Personality Player",
+        "player_rank": 10,
+        "rating": 2300,
+        "player_title": "IM",
+        "country": "CA",
+    }], [], '06-19-2024', '05-19-2024')
+
+    # Check if the player is now a leaderboard player in TrackedPlayers
+    response = tracked_table.get_item(Key={'username': 'personality_player'})
+    assert 'Item' in response
+    assert response['Item']['username'] == 'personality_player'
+    assert response['Item']['is_leaderboard_player'] == True
+    assert response['Item']['last_seen'] == '06-19-2024'
+
+    # Check if the player's stats are updated in PlayerStats
+    response = stats_table.get_item(Key={'username': 'personality_player'})
+    assert 'Item' in response
+    assert response['Item']['username'] == 'personality_player'
+    assert response['Item']['rating'] == 2300
+    assert response['Item']['player_rank'] == 10
+    assert response['Item']['is_leaderboard_player'] == True
+    assert response['Item']['active'] == True
