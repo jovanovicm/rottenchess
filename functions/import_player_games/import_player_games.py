@@ -262,7 +262,7 @@ def get_games(USER_AGENT_EMAIL, MIN_END_TIME, MAX_END_TIME, TIME_CLASS, username
                 for game in data["games"]:
                     # Ensure all required fields are present
                     if all(key in game for key in ['end_time', 'time_class', 'pgn']) and \
-                       MAX_END_TIME <= game['end_time'] >= MIN_END_TIME and \
+                       MAX_END_TIME >= game['end_time'] >= MIN_END_TIME and \
                        game['time_class'] == TIME_CLASS:
                         game_info = {
                             "game_uuid": game["uuid"],
