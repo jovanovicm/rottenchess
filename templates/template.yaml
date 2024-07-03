@@ -19,6 +19,7 @@ Resources:
         GameImportsTable: !GetAtt InfrastructureStack.Outputs.GameImportsTable
         TrackedPlayersTable: !GetAtt InfrastructureStack.Outputs.TrackedPlayersTable
         PlayerStatsTable: !GetAtt InfrastructureStack.Outputs.PlayerStatsTable
+        LeaderboardHistoryTable: !GetAtt InfrastructureStack.Outputs.LeaderboardHistoryTable
         GameQueue: !GetAtt InfrastructureStack.Outputs.GameQueue
 
   APIStack:
@@ -29,3 +30,4 @@ Resources:
         GetPlayerStatsFunction: !GetAtt FunctionsStack.Outputs.GetPlayerStatsFunction
         BatchGetPlayerStatsFunction: !GetAtt FunctionsStack.Outputs.BatchGetPlayerStatsFunction
         GetPlayersFunction: !GetAtt FunctionsStack.Outputs.GetPlayersFunction
+        GetLeaderboardHistoryFunction: !GetAtt FunctionsStack.Outputs.GetLeaderboardHistoryFunction

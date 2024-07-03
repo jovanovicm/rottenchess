@@ -75,6 +75,14 @@ Resources:
         Name: username
         Type: String
   
+  LeaderboardHistoryTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: rotten-chess-LeaderboardHistory
+      PrimaryKey:
+        Name: date
+        Type: String
+  
   GameQueue:
     Type: AWS::SQS::Queue
 
@@ -257,6 +265,10 @@ Outputs:
   PlayerStatsTable:
     Description: ARN of the Player Stats Table
     Value: !Ref PlayerStatsTable
+  
+  LeaderboardHistoryTable:
+    Description: ARN of the Leaderboard History Table
+    Value: !Ref LeaderboardHistoryTable
 
   GameQueue:
     Description: URL of the Game Queue
