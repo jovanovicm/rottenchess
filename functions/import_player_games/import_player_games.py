@@ -16,13 +16,23 @@ def lambda_handler(event, context):
 
     # Chess Personalities + me
     chess_personalities = [
-        'markoj000',
+        'markoj000', #me
         'gothamchess',
         'alexandrabotez',
         'supersecret12345',
         'nemsko', 
         'annacramling',
-        'chessbrah'
+        'chessbrah',
+        'imrosen',
+        'Chess_Knowledge_With_H1',
+        'thechessnerd',
+        'GMBenjaminFinegold',
+        'HannahSayce',
+        'Blitzstream',
+        'janistantv',
+        'roseychess',
+        'gmcanty',
+        'metharina'
     ]
 
     leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL)
