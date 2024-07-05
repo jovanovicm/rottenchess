@@ -1,60 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Rotten Chess Infrastructure
+Description: Test Rotten Chess Infrastructure
 
-Resources: 
-  ECSTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: ECSTaskPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ecs:*
-                  - ecr:*
-                  - logs:*
-                  - sqs:*
-                  - s3:*
-                  - dynamodb:*
-                Resource: "*"
-    
-  AutoScalingRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - application-autoscaling.amazonaws.com
-            Action: "sts:AssumeRole"
-      Policies:
-        - PolicyName: AutoScalingPolicy
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - cloudwatch:*
-                  - ecs:*
-                  - application-autoscaling:*
-                Resource: "*"
-
+Resources:
   GameImportsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: rotten-chess-GameImportsTable
+      TableName: test-rotten-chess-GameImportsTable
       PrimaryKey:
         Name: game_uuid
         Type: String
@@ -62,7 +14,7 @@ Resources:
   TrackedPlayersTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: rotten-chess-TrackedPlayersTable
+      TableName: test-rotten-chess-TrackedPlayersTable
       PrimaryKey:
         Name: username
         Type: String
@@ -70,26 +22,20 @@ Resources:
   PlayerStatsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: rotten-chess-PlayerStatsTable
+      TableName: test-rotten-chess-PlayerStatsTable
       PrimaryKey:
         Name: username
         Type: String
   
-  LeaderboardHistoryTable:
-    Type: AWS::Serverless::SimpleTable
-    Properties:
-      TableName: rotten-chess-LeaderboardHistory
-      PrimaryKey:
-        Name: date
-        Type: String
-  
   GameQueue:
     Type: AWS::SQS::Queue
+    Properties:
+      QueueName: test-rotten-chess-GameQueue
 
   AnalysisLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: AnalysisLogGroup
+      LogGroupName: test-AnalysisLogGroup
       RetentionInDays: 14
 
   ECSCluster:
@@ -98,20 +44,20 @@ Resources:
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: rotten-chess-task
+      Family: test-rotten-chess-task
       Cpu: 1024
       Memory: 2048
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      ExecutionRoleArn: !GetAtt ECSTaskRole.Arn
-      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      ExecutionRoleArn: !ImportValue rotten-chess-ECSTaskRole
+      TaskRoleArn: !ImportValue rotten-chess-ECSTaskRole
       RuntimePlatform:
         CpuArchitecture: X86_64
         OperatingSystemFamily: LINUX
       ContainerDefinitions:
-        - Name: chess-analysis
-          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:latest
+        - Name: test-chess-analysis
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:test
           Essential: true
           Cpu: 1024
           Memory: 2048
@@ -120,16 +66,16 @@ Resources:
             Options:
               awslogs-group: !Ref AnalysisLogGroup
               awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: ecs
+              awslogs-stream-prefix: test-ecs
           Environment:
             - Name: SQS_QUEUE_URL
               Value: !Ref GameQueue
             - Name: PLAYER_STATS_TABLE
               Value: !Ref PlayerStatsTable
             - Name: ECS_CLUSTER_NAME
-              Value: 'rotten-chess-InfrastructureStack-1Y2FM7R92A26B-ECSCluster-aacsvvpvw9dN'
+              Value: 'test-rotten-chess-TestInfrastructureStack-1PN6EF0DVATQF-ECSCluster-HERVkfQJkOcU'
             - Name: ECS_SERVICE_NAME
-              Value: 'rotten-chess-InfrastructureStack-1Y2FM7R92A26B-ECSService-9JTBLmVrwlGM'
+              Value: 'test-rotten-chess-TestInfrastructureStack-1PN6EF0DVATQF-ECSService-8fvxTLdGTUM6'
 
   ECSScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
@@ -139,7 +85,7 @@ Resources:
       ResourceId: !Sub service/${ECSCluster}/${ECSService.Name}
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
-      RoleARN: !GetAtt AutoScalingRole.Arn
+      RoleARN: !ImportValue rotten-chess-AutoScalingRole
   
   QueueMessagesAlarmHigh:
     Type: AWS::CloudWatch::Alarm
@@ -160,7 +106,7 @@ Resources:
   ScaleUpPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: ECSServiceScaleUpPolicy
+      PolicyName: test-ECSServiceScaleUpPolicy
       PolicyType: StepScaling
       ScalingTargetId: !Ref ECSScalingTarget
       StepScalingPolicyConfiguration:
@@ -222,24 +168,6 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet
       RouteTableId: !Ref RouteTable
-  
-  S3Endpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Gateway
-      RouteTableIds:
-        - !Ref RouteTable
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
-      VpcId: !Ref VPC
-  
-  DynamoDBEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Gateway
-      RouteTableIds:
-        - !Ref RouteTable
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
-      VpcId: !Ref VPC
 
 Outputs:
   VPC:
@@ -265,10 +193,6 @@ Outputs:
   PlayerStatsTable:
     Description: ARN of the Player Stats Table
     Value: !Ref PlayerStatsTable
-  
-  LeaderboardHistoryTable:
-    Description: ARN of the Leaderboard History Table
-    Value: !Ref LeaderboardHistoryTable
 
   GameQueue:
     Description: URL of the Game Queue

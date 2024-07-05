@@ -1,0 +1,289 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Production Rotten Chess Infrastructure
+
+Resources: 
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ECSTaskPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:*
+                  - ecr:*
+                  - logs:*
+                  - sqs:*
+                  - s3:*
+                  - dynamodb:*
+                Resource: "*"
+    
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - application-autoscaling.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: AutoScalingPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - cloudwatch:*
+                  - ecs:*
+                  - application-autoscaling:*
+                Resource: "*"
+
+  GameImportsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: rotten-chess-GameImportsTable
+      PrimaryKey:
+        Name: game_uuid
+        Type: String
+  
+  TrackedPlayersTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: rotten-chess-TrackedPlayersTable
+      PrimaryKey:
+        Name: username
+        Type: String
+  
+  PlayerStatsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: rotten-chess-PlayerStatsTable
+      PrimaryKey:
+        Name: username
+        Type: String
+  
+  LeaderboardHistoryTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: rotten-chess-LeaderboardHistory
+      PrimaryKey:
+        Name: date
+        Type: String
+  
+  GameQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: rotten-chess-GameQueue
+
+  AnalysisLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: AnalysisLogGroup
+      RetentionInDays: 14
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: rotten-chess-task
+      Cpu: 1024
+      Memory: 2048
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ECSTaskRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: chess-analysis
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:latest
+          Essential: true
+          Cpu: 1024
+          Memory: 2048
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref AnalysisLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Environment:
+            - Name: SQS_QUEUE_URL
+              Value: !Ref GameQueue
+            - Name: PLAYER_STATS_TABLE
+              Value: !Ref PlayerStatsTable
+            - Name: ECS_CLUSTER_NAME
+              Value: 'rotten-chess-InfrastructureStack-1Y2FM7R92A26B-ECSCluster-aacsvvpvw9dN'
+            - Name: ECS_SERVICE_NAME
+              Value: 'rotten-chess-InfrastructureStack-1Y2FM7R92A26B-ECSService-9JTBLmVrwlGM'
+
+  ECSScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 100  
+      MinCapacity: 0    
+      ResourceId: !Sub service/${ECSCluster}/${ECSService.Name}
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+      RoleARN: !GetAtt AutoScalingRole.Arn
+  
+  QueueMessagesAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt GameQueue.QueueName
+      Statistic: Sum
+      Period: 10
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref ScaleUpPolicy
+
+  ScaleUpPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: ECSServiceScaleUpPolicy
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref ECSScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 10
+        MetricAggregationType: Average
+        StepAdjustments:
+          - MetricIntervalLowerBound: 0
+            ScalingAdjustment: 1
+
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: 0
+      TaskDefinition: !Ref ECSTaskDefinition
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnet
+          SecurityGroups:
+            - !Ref SecurityGroup
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Shared security group
+      VpcId: !Ref VPC
+
+  SecurityGroupAccessRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref SecurityGroup
+      GroupId: !Ref SecurityGroup
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.128.0/24
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref RouteTable
+  
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref RouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !Ref VPC
+  
+  DynamoDBEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref RouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
+      VpcId: !Ref VPC
+
+Outputs:
+  VPC:
+    Description: ID of the VPC
+    Value: !Ref VPC
+
+  SecurityGroup:
+    Description: ID of the Security Group
+    Value: !Ref SecurityGroup
+  
+  PrivateSubnet:
+    Description: ID of the Private Subnet
+    Value: !Ref PrivateSubnet
+
+  GameImportsTable:
+    Description: ARN of the Game Imports Table
+    Value: !Ref GameImportsTable
+
+  TrackedPlayersTable:
+    Description: ARN of the Tracked Players Table
+    Value: !Ref TrackedPlayersTable
+
+  PlayerStatsTable:
+    Description: ARN of the Player Stats Table
+    Value: !Ref PlayerStatsTable
+  
+  LeaderboardHistoryTable:
+    Description: ARN of the Leaderboard History Table
+    Value: !Ref LeaderboardHistoryTable
+
+  GameQueue:
+    Description: URL of the Game Queue
+    Value: !Ref GameQueue
+  
+  ECSTaskRole:
+    Description: ARN of the ECS Task Role
+    Value: !GetAtt ECSTaskRole.Arn
+    Export: 
+      Name: rotten-chess-ECSTaskRole
+  
+  AutoScalingRole:
+    Description: ARN of the Auto Scaling Role
+    Value: !GetAtt AutoScalingRole.Arn
+    Export:
+      Name: rotten-chess-AutoScalingRole

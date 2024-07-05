@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Rotten Chess Functions
+Description: Production Rotten Chess Functions
 
 Parameters:
   VPC:
@@ -84,7 +84,7 @@ Resources:
   ImportPlayerGamesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/import_player_games/
+      CodeUri: ../../functions/import_player_games/
       Handler: import_player_games.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-ImportPlayerGames
@@ -102,7 +102,7 @@ Resources:
   EnqueueDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/enqueue_dynamodb_items/
+      CodeUri: ../../functions/enqueue_dynamodb_items/
       Handler: enqueue_dynamodb_items.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-EnqueueDynamoDBItems
@@ -119,7 +119,7 @@ Resources:
   PrivateLinkProvisionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/provision_privatelinks/
+      CodeUri: ../../functions/provision_privatelinks/
       Handler: provision_privatelinks.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-PrivateLinkProvision
@@ -137,7 +137,7 @@ Resources:
   PrivateLinkDeprovisionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/deprovision_privatelinks/
+      CodeUri: ../../functions/deprovision_privatelinks/
       Handler: deprovision_privatelinks.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-PrivateLinkDeprovision
@@ -150,7 +150,7 @@ Resources:
   CheckQueueFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/check_queue/
+      CodeUri: ../../functions/check_queue/
       Handler: check_queue.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-CheckQueue
@@ -166,7 +166,7 @@ Resources:
   DeleteDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/delete_dynamodb_items/
+      CodeUri: ../../functions/delete_dynamodb_items/
       Handler: delete_dynamodb_items.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-DeleteDynamoDBItems
@@ -182,7 +182,7 @@ Resources:
   UpdateLeaderboardHistoryFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/update_leaderboard_history/
+      CodeUri: ../../functions/update_leaderboard_history/
       Handler: update_leaderboard_history.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-UpdateLeaderboardHistory
@@ -200,7 +200,7 @@ Resources:
   GetPlayerStatsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/api/get_player_stats/
+      CodeUri: ../../functions/api/get_player_stats/
       Handler: get_player_stats.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-GetPlayerStats
@@ -216,7 +216,7 @@ Resources:
   BatchGetPlayerStatsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/api/batch_get_player_stats/
+      CodeUri: ../../functions/api/batch_get_player_stats/
       Handler: batch_get_player_stats.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-BatchGetPlayerStats
@@ -232,7 +232,7 @@ Resources:
   GetPlayersFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/api/get_players/
+      CodeUri: ../../functions/api/get_players/
       Handler: get_players.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-GetPlayers
@@ -248,7 +248,7 @@ Resources:
   GetLeaderboardHistoryFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../functions/api/get_leaderboard_history/
+      CodeUri: ../../functions/api/get_leaderboard_history/
       Handler: get_leaderboard_history.lambda_handler
       Runtime: python3.12
       FunctionName: rotten-chess-GetLeaderboardHistory
@@ -265,6 +265,7 @@ Resources:
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
+      StateMachineName: rotten-chess-StateMachine
       RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
       DefinitionString: !Sub |
         {
@@ -438,3 +439,15 @@ Outputs:
   GetLeaderboardHistoryFunction:
     Description: ARN of the GetLeaderboardHistory Lambda function
     Value: !GetAtt GetLeaderboardHistoryFunction.Arn
+
+  LambdaExecutionRole:
+    Description: ARN of the Lambda Execution Role
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: rotten-chess-LambdaExecutionRole
+  
+  StepFunctionsExecutionRole:
+    Description: ARN of the Step Functions Execution Role
+    Value: !GetAtt StepFunctionsExecutionRole.Arn
+    Export:
+      Name: rotten-chess-StepFunctionsExecutionRole
