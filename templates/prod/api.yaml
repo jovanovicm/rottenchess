@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Rotten Chess API Resources
+Description: Production Rotten Chess API Resources
 
 Parameters:
   GetPlayerStatsFunction:
