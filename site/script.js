@@ -258,16 +258,12 @@ function applyFilters() {
   rows.forEach((row) => {
     const usernameCell = row.getElementsByTagName("TD")[1];
     const username = usernameCell.textContent || usernameCell.innerText;
+    const category = row.getAttribute("data-category");
 
-    if (
-      username.toLowerCase().indexOf(searchText) > -1 &&
-      (currentFilter === "all" ||
-        row.getAttribute("data-category") === currentFilter)
-    ) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
+    const matchesSearch = username.toLowerCase().indexOf(searchText) > -1;
+    const matchesFilter = currentFilter === "all" || category === currentFilter;
+
+    row.style.display = matchesSearch && matchesFilter ? "" : "none";
   });
 }
 
@@ -293,33 +289,38 @@ function sortTable(columnIndex, headerElement, toggle = true) {
   let rows = Array.from(table.rows);
   let direction = headerElement.getAttribute("data-sort-direction");
 
-  // Default behaviour: toggle column ascending/descending
   if (toggle) {
-    // Flip direction
     direction = direction === "asc" ? "desc" : "asc";
-    // Update direction state
     headerElement.setAttribute("data-sort-direction", direction);
-  } // If not toggle set, direction state is correct
+  }
 
   rows.sort((a, b) => {
     let cellA = a.cells[columnIndex].textContent.trim();
     let cellB = b.cells[columnIndex].textContent.trim();
 
-    return direction === "asc"
-      ? parseFloat(cellA) - parseFloat(cellB)
-      : parseFloat(cellB) - parseFloat(cellA);
+    // Special handling for the ranking column
+    if (columnIndex === 0) {
+      let rankA = a.getAttribute("data-category") === "top50" ? parseInt(cellA) || Infinity : Infinity;
+      let rankB = b.getAttribute("data-category") === "top50" ? parseInt(cellB) || Infinity : Infinity;
+      return direction === "asc" ? rankA - rankB : rankB - rankA;
+    }
+
+    // For other columns, use numeric sorting
+    let valueA = parseFloat(cellA) || 0;
+    let valueB = parseFloat(cellB) || 0;
+    return direction === "asc" ? valueA - valueB : valueB - valueA;
   });
 
-  rows.forEach((row) => table.appendChild(row));
+  // Reorder the rows without removing any
+  rows.forEach(row => table.appendChild(row));
 
   // Update sort arrow visibility
   const arrows = headerElement.querySelectorAll(".sort-arrow");
-  arrows.forEach((arrow) => arrow.classList.remove("active"));
-  if (direction === "asc") {
-    headerElement.querySelector(".up-arrow").classList.add("active");
-  } else {
-    headerElement.querySelector(".down-arrow").classList.add("active");
-  }
+  arrows.forEach(arrow => arrow.classList.remove("active"));
+  headerElement.querySelector(direction === "asc" ? ".up-arrow" : ".down-arrow").classList.add("active");
+
+  // Apply current filter after sorting
+  applyFilters();
 }
 
 function highlightPlayers() {
