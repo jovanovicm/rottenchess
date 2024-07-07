@@ -6,24 +6,25 @@ import boto3
 import os
 from datetime import timezone, datetime
 from urllib.request import Request, urlopen
+import signal
 
 AWS_REGION = os.getenv('AWS_REGION')
 QUEUE_URL = os.getenv('SQS_QUEUE_URL')
 PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
 ECS_SERVICE_NAME = os.getenv('ECS_SERVICE_NAME')
 ECS_CLUSTER_NAME = os.getenv('ECS_CLUSTER_NAME')
+PROCESSED_GAMES_TABLE = os.getenv('PROCESSED_GAMES_TABLE')
 ECS_AGENT_URI = os.getenv('ECS_AGENT_URI')
 
-engine = None
-sqs = None
-table = None
+shutdown_flag = False
+message = None
 
 def init_resources():
-    global sqs
-    global table
+    global sqs, table, processed_games_table, player_stats_table
     sqs = boto3.client('sqs', region_name=AWS_REGION)
     dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
-    table = dynamodb.Table(PLAYER_STATS_TABLE)
+    player_stats_table = dynamodb.Table(PLAYER_STATS_TABLE)
+    processed_games_table = dynamodb.Table(PROCESSED_GAMES_TABLE)
 
 def log_print(*args, **kwargs):
     print(*args, **kwargs, flush=True)
@@ -31,6 +32,42 @@ def log_print(*args, **kwargs):
 def init_engine(path='/usr/games/stockfish'):
     global engine
     engine = chess.engine.SimpleEngine.popen_uci(path)
+
+def shutdown():
+    set_task_protection(False)
+    decrease_task_count(ECS_CLUSTER_NAME, ECS_SERVICE_NAME)
+
+def signal_handler(signum, frame):
+    global shutdown_flag
+
+    sqs.change_message_visibility(
+            QueueUrl=QUEUE_URL,
+            ReceiptHandle=message[0]['ReceiptHandle'],
+            VisibilityTimeout=0
+        )
+    
+    shutdown()
+    shutdown_flag = True
+    log_print("Shutdown signal received. Shutting down...")
+
+def mark_game_as_processed(message_id, game_uuid, processed_games_table):
+    processed_games_table.update_item(
+        Key={'message_id': message_id},
+        UpdateExpression="SET game_ids = list_append(if_not_exists(game_ids, :empty_list), :game_uuid)",
+        ExpressionAttributeValues={
+            ':empty_list': [],
+            ':game_uuid': [game_uuid]
+        }
+    )
+
+def get_processed_games(message_id, processed_games_table):
+    log_print(f'Getting list of processed games for message ID: {message_id}')
+    response = processed_games_table.get_item(
+        Key={'message_id': message_id}
+    )
+    processed_games = response.get('Item', {}).get('game_ids', [])
+    log_print(f'Processed games: {processed_games}')
+    return processed_games
 
 def set_task_protection(protected):
     url = f"{ECS_AGENT_URI}/task-protection/v1/state"
@@ -45,7 +82,7 @@ def set_task_protection(protected):
     
     log_print(f"Scale-in protection set to {protected}.")
 
-def update_player_stats(player, stats, year, month, game_info, table, total_games_increment):
+def update_player_stats(player, stats, year, month, game_info, player_stats_table, total_games_increment):
     keys = {'username': player}
 
     # Initialize paths
@@ -66,7 +103,7 @@ def update_player_stats(player, stats, year, month, game_info, table, total_game
 
     # Apply map initializations
     for expr in initialize_map_paths:
-        table.update_item(
+        player_stats_table.update_item(
             Key=keys,
             UpdateExpression=expr,
             ExpressionAttributeValues={":empty_map": {}}
@@ -74,7 +111,7 @@ def update_player_stats(player, stats, year, month, game_info, table, total_game
 
     # Apply zero initializations
     for expr in initialize_zero_paths:
-        table.update_item(
+        player_stats_table.update_item(
             Key=keys,
             UpdateExpression=expr,
             ExpressionAttributeValues={":zero": 0}
@@ -82,7 +119,7 @@ def update_player_stats(player, stats, year, month, game_info, table, total_game
 
     # Update the total_games
     update_expression = f"ADD game_stats.{year}.total_games :inc_games, game_stats.{year}.{month}.total_games :inc_games"
-    table.update_item(
+    player_stats_table.update_item(
         Key=keys,
         UpdateExpression=update_expression,
         ExpressionAttributeValues={":inc_games": total_games_increment}
@@ -94,14 +131,14 @@ def update_player_stats(player, stats, year, month, game_info, table, total_game
         monthly_path = f"game_stats.{year}.{month}.player_total.{stat}"
         
         update_expression = f"ADD {yearly_path} :inc, {monthly_path} :inc"
-        table.update_item(
+        player_stats_table.update_item(
             Key=keys,
             UpdateExpression=update_expression,
             ExpressionAttributeValues={":inc": increment}
         )
 
     # Fetch current item to compare worst games
-    response = table.get_item(Key=keys)
+    response = player_stats_table.get_item(Key=keys)
     item = response.get('Item', {})
     game_stats = item.get('game_stats', {})
     year_stats = game_stats.get(year, {})
@@ -113,7 +150,7 @@ def update_player_stats(player, stats, year, month, game_info, table, total_game
     # Update worst game for year
     if game_info['magnitude'] > yearly_worst_game.get('magnitude', -1):
         update_expression = f"SET game_stats.{year}.worst_game = :game_info"
-        table.update_item(
+        player_stats_table.update_item(
             Key=keys,
             UpdateExpression=update_expression,
             ExpressionAttributeValues={":game_info": game_info}
@@ -123,7 +160,7 @@ def update_player_stats(player, stats, year, month, game_info, table, total_game
     # Update worst game for month
     if game_info['magnitude'] > monthly_worst_game.get('magnitude', -1):
         update_expression = f"SET game_stats.{year}.{month}.worst_game = :game_info"
-        table.update_item(
+        player_stats_table.update_item(
             Key=keys,
             UpdateExpression=update_expression,
             ExpressionAttributeValues={":game_info": game_info}
@@ -153,16 +190,17 @@ def decrease_task_count(cluster_name, service_name):
 
     log_print(f'Decreased desired count to {new_desired_count}')
 
-def fetch_messages():
+def fetch_message():
     response = sqs.receive_message(
         QueueUrl=QUEUE_URL,
         MaxNumberOfMessages=1,
         WaitTimeSeconds=20,
         VisibilityTimeout=7200
     )
-    return response.get('Messages', [])
+    global message
+    message = response.get('Messages', [])
 
-def delete_message(receipt_handle):
+def delete_message(receipt_handle, sqs):
     sqs.delete_message(
         QueueUrl=QUEUE_URL,
         ReceiptHandle=receipt_handle
@@ -207,11 +245,17 @@ def analyze_moves(moves, engine, board):
 
     return stats
 
-def process_message(message, engine, table):
-    games = json.loads(message['Body'])
+def process_message(message, engine, player_stats_table, processed_games_table, sqs):
+    message_id = message[0]['MessageId']
+    games = json.loads(message[0]['Body'])
     board = chess.Board()
+    processed_games = get_processed_games(message_id, processed_games_table)
 
     for game in games:
+        if game['game_uuid'] in processed_games:
+            log_print(f'Skipping already processed game: {game["game_uuid"]}')
+            continue
+
         board.reset()
         moves = game['moves'].split()
         end_time = datetime.fromtimestamp(game['end_time'], timezone.utc)
@@ -226,7 +270,7 @@ def process_message(message, engine, table):
         players = {'white': game['white'], 'black': game['black']}
 
         for colour, player in players.items():
-            response = table.get_item(Key={'username': player})
+            response = player_stats_table.get_item(Key={'username': player})
             if 'Item' not in response:
                 log_print(f'Player {player} not found in the database. Skipping...')
                 continue
@@ -242,28 +286,35 @@ def process_message(message, engine, table):
                 'stats': current_stats
             }
             
-            update_player_stats(player, current_stats, year, month, game_info, table, 1)
-
+            update_player_stats(player, current_stats, year, month, game_info, player_stats_table, 1)
+        
+        mark_game_as_processed(message_id, game['game_uuid'], processed_games_table)
         log_print(f"Game processed successfully: {game['game_uuid']}")
 
-    log_print("All games in message processed")
+    delete_message(message[0]['ReceiptHandle'], sqs)
+    log_print("All games in message processed.")
+
 
 def main():
+    signal.signal(signal.SIGTERM, signal_handler)
     init_engine()
     init_resources()
     
     set_task_protection(True)
 
-    messages = fetch_messages()
-    for message in messages:
-        process_message(message, engine, table)
-        delete_message(message['ReceiptHandle'])
-    
-    engine.quit()
-    log_print('TASK COMPLETE')
+    while not shutdown_flag:
+        fetch_message()
+        if not message:
+            shutdown()
+            break
 
-    set_task_protection(False)
-    decrease_task_count(ECS_CLUSTER_NAME, ECS_SERVICE_NAME)
+        process_message(message, engine, player_stats_table, processed_games_table, sqs)
+    
+        engine.quit()
+        log_print('TASK COMPLETE')
+
+        shutdown()
+        break 
 
 if __name__ == '__main__':
     main()
