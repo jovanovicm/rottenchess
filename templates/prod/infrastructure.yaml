@@ -26,6 +26,7 @@ Resources:
                   - sqs:*
                   - s3:*
                   - dynamodb:*
+                  - ssm:*
                 Resource: "*"
     
   AutoScalingRole:
@@ -75,6 +76,14 @@ Resources:
         Name: username
         Type: String
   
+  ProcessedGamesTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-ProcessedGamesTable
+      PrimaryKey:
+        Name: message_id
+        Type: String
+  
   LeaderboardHistoryTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
@@ -96,6 +105,15 @@ Resources:
 
   ECSCluster:
     Type: AWS::ECS::Cluster
+    Properties:
+      CapacityProviders:
+        - FARGATE_SPOT
+        - FARGATE
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 9
+        - CapacityProvider: FARGATE
+          Weight: 1
 
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -128,6 +146,8 @@ Resources:
               Value: !Ref GameQueue
             - Name: PLAYER_STATS_TABLE
               Value: !Ref PlayerStatsTable
+            - Name: PROCESSED_GAMES_TABLE 
+              Value: !Ref ProcessedGamesTable
             - Name: ECS_CLUSTER_NAME
               Value: 'rotten-chess-InfrastructureStack-1Y2FM7R92A26B-ECSCluster-aacsvvpvw9dN'
             - Name: ECS_SERVICE_NAME

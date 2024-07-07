@@ -27,6 +27,14 @@ Resources:
         Name: username
         Type: String
   
+  ProcessedGamesTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-ProcessedGamesTable
+      PrimaryKey:
+        Name: message_id
+        Type: String
+  
   GameQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -40,6 +48,15 @@ Resources:
 
   ECSCluster:
     Type: AWS::ECS::Cluster
+    Properties:
+      CapacityProviders:
+        - FARGATE_SPOT
+        - FARGATE
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 9
+        - CapacityProvider: FARGATE
+          Weight: 1
 
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -56,7 +73,7 @@ Resources:
         CpuArchitecture: X86_64
         OperatingSystemFamily: LINUX
       ContainerDefinitions:
-        - Name: test-chess-analysis
+        - Name: chess-analysis
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:test
           Essential: true
           Cpu: 1024
@@ -72,6 +89,8 @@ Resources:
               Value: !Ref GameQueue
             - Name: PLAYER_STATS_TABLE
               Value: !Ref PlayerStatsTable
+            - Name: PROCESSED_GAMES_TABLE 
+              Value: !Ref ProcessedGamesTable
             - Name: ECS_CLUSTER_NAME
               Value: 'test-rotten-chess-TestInfrastructureStack-1PN6EF0DVATQF-ECSCluster-HERVkfQJkOcU'
             - Name: ECS_SERVICE_NAME
@@ -168,6 +187,24 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet
       RouteTableId: !Ref RouteTable
+  
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref RouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !Ref VPC
+  
+  DynamoDBEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref RouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
+      VpcId: !Ref VPC
 
 Outputs:
   VPC:
