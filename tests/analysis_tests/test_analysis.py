@@ -86,6 +86,7 @@ def test_process_message(dynamodb_table, chess_engine):
         dynamodb_table.put_item(Item={'username': player, 'game_stats': {}})
 
     message = {
+        'MessageId': 'test-message-id',
         'Body': json.dumps([{
             "game_uuid": "test-game-1",
             "white": "player1",
