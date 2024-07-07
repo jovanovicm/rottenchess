@@ -79,7 +79,7 @@ Resources:
   ProcessedGamesTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: test-rotten-chess-ProcessedGamesTable
+      TableName: rotten-chess-ProcessedGamesTable
       PrimaryKey:
         Name: message_id
         Type: String
