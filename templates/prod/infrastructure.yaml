@@ -92,6 +92,14 @@ Resources:
         Name: date
         Type: String
   
+  MetadataTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: rotten-chess-MetadataTable
+      PrimaryKey:
+        Name: metadata_id
+        Type: String
+  
   GameQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -292,6 +300,10 @@ Outputs:
   LeaderboardHistoryTable:
     Description: ARN of the Leaderboard History Table
     Value: !Ref LeaderboardHistoryTable
+  
+  MetadataTable:
+    Description: ARN of the Metadata Table
+    Value: !Ref MetadataTable
 
   GameQueue:
     Description: URL of the Game Queue
