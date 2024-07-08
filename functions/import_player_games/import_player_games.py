@@ -16,23 +16,23 @@ def lambda_handler(event, context):
 
     # Chess Personalities + me
     chess_personalities = [
-        'markoj000', #me
-        'gothamchess',
-        'alexandrabotez',
-        'supersecret12345',
-        'nemsko', 
-        'annacramling',
-        'chessbrah',
-        'imrosen',
-        'Chess_Knowledge_With_H1',
-        'thechessnerd',
-        'GMBenjaminFinegold',
-        'HannahSayce',
-        'Blitzstream',
-        'janistantv',
-        'roseychess',
-        'gmcanty',
-        'metharina'
+        {'username': 'markoj000', 'display': 'username'}, #me
+        {'username': 'gothamchess', 'display': 'username'},
+        {'username': 'alexandrabotez', 'display': 'name'},
+        {'username': 'supersecret12345', 'display': 'username'},
+        {'username': 'nemsko', 'display': 'name'}, 
+        {'username': 'annacramling', 'display': 'name'},
+        {'username': 'chessbrah', 'display': 'name'},
+        {'username': 'imrosen', 'display': 'name'},
+        {'username': 'Chess_Knowledge_With_H1', 'display': 'username'},
+        {'username': 'thechessnerd', 'display': 'username'},
+        {'username': 'GMBenjaminFinegold', 'display': 'name'},
+        {'username': 'HannahSayce', 'display': 'name'},
+        {'username': 'Blitzstream', 'display': 'username'},
+        {'username': 'janistantv', 'display': 'username'},
+        {'username': 'roseychess', 'display': 'name'},
+        {'username': 'gmcanty', 'display': 'username'},
+        {'username': 'metharina', 'display': 'username'}
     ]
 
     leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL)
@@ -178,15 +178,15 @@ def get_leaderboard(USER_AGENT_EMAIL):
         print(f"Failed: {e.reason}")
         return None
 
-def get_players_info(usernames, USER_AGENT_EMAIL):
+def get_players_info(personalities, USER_AGENT_EMAIL):
     players_info = []
-    for username in usernames:
-        player_info = get_player_stats(username, USER_AGENT_EMAIL)
+    for personality in personalities:
+        player_info = get_player_stats(personality['username'], USER_AGENT_EMAIL, personality['display'])
         if player_info:
             players_info.append(player_info)
     return players_info
 
-def get_player_stats(username, USER_AGENT_EMAIL):
+def get_player_stats(username, USER_AGENT_EMAIL, display_preference):
     url = f"https://api.chess.com/pub/player/{username}/stats"
     headers = {'User-Agent': USER_AGENT_EMAIL}
 
@@ -196,7 +196,7 @@ def get_player_stats(username, USER_AGENT_EMAIL):
         with request.urlopen(req) as response:
             if response.status == 200:
                 data = json.loads(response.read().decode('utf-8'))
-                player_info = get_info(username, USER_AGENT_EMAIL)
+                player_info = get_info(username, USER_AGENT_EMAIL, display_preference)
                 if player_info:
                     player_info['rating'] = data['chess_blitz']['last']['rating']
                     return player_info
@@ -204,7 +204,7 @@ def get_player_stats(username, USER_AGENT_EMAIL):
         print(f"Error fetching stats for {username}: {e.reason}")
         return None
 
-def get_info(username, USER_AGENT_EMAIL):
+def get_info(username, USER_AGENT_EMAIL, display_preference):
     url = f"https://api.chess.com/pub/player/{username}"
     headers = {'User-Agent': USER_AGENT_EMAIL}
 
@@ -215,9 +215,10 @@ def get_info(username, USER_AGENT_EMAIL):
             if response.status == 200:
                 data = json.loads(response.read().decode('utf-8'))
                 country_code = data["country"].rsplit('/', 1)[-1]
+                display_name = data.get("name", data["username"].lower()) if display_preference == 'name' else data["username"].lower()
                 return {
                     "username": data["username"].lower(),
-                    "player_name": data.get("name", data["username"].lower()),
+                    "player_name": display_name,
                     "player_title": data.get("title", "None"),
                     "country": country_code,
                 }
