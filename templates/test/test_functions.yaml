@@ -15,6 +15,10 @@ Parameters:
     Type: String
   PlayerStatsTable:
     Type: String
+  ProcessedGamesTable:
+    Type: String
+  MetadataTable:
+    Type: String
   GameQueue:
     Type: String
 
@@ -127,6 +131,23 @@ Resources:
       Environment:
         Variables:
           GAME_IMPORTS_TABLE: !Ref GameImportsTable
+          PROCESSED_GAMES_TABLE: !Ref ProcessedGamesTable
+      Architectures:
+        - x86_64
+  
+  LastUpdatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/last_updated/
+      Handler: last_updated.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-LastUpdated
+      Timeout: 30 
+      MemorySize: 128  
+      Role: !ImportValue rotten-chess-LambdaExecutionRole
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
       Architectures:
         - x86_64
   
@@ -149,9 +170,9 @@ Resources:
                   "States": {
                     "Import Player Games": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGames:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ImportPlayerGames:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGames:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ImportPlayerGames:$LATEST"
                       },
                       "ResultPath": "$.importResult",
                       "Retry": [
@@ -176,9 +197,9 @@ Resources:
                   "States": {
                     "Provision PrivateLinks": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvision:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-PrivateLinkProvision:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvision:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-PrivateLinkProvision:$LATEST"
                       },
                       "ResultPath": "$.provisionResult",
                       "Retry": [
@@ -205,7 +226,7 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-EnqueueDynamoDBItems:$LATEST",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-EnqueueDynamoDBItems:$LATEST",
                 "Payload.$": "$"
               },
               "Retry": [
@@ -225,9 +246,9 @@ Resources:
             },
             "Check Queue": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueue:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-CheckQueue:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueue:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-CheckQueue:$LATEST"
               },
               "Next": "Is Queue Empty"
             },
@@ -249,9 +270,9 @@ Resources:
             },
             "Deprovision PrivateLinks": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovision:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-PrivateLinkDeprovision:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovision:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-PrivateLinkDeprovision:$LATEST"
               },
               "Retry": [
                 {
@@ -270,9 +291,32 @@ Resources:
             },
             "Delete DynamoDB Items": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeleteDynamoDBItems:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeleteDynamoDBItems:$LATEST"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Last Updated"
+            },
+            "Last Updated": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-LastUpdated:$LATEST"
               },
               "Retry": [
                 {
