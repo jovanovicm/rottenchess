@@ -285,6 +285,10 @@ Outputs:
     Description: ARN of the Player Stats Table
     Value: !Ref PlayerStatsTable
   
+  ProcessedGamesTable:
+    Description: ARN of the Processed Games Table
+    Value: !Ref ProcessedGamesTable
+  
   LeaderboardHistoryTable:
     Description: ARN of the Leaderboard History Table
     Value: !Ref LeaderboardHistoryTable

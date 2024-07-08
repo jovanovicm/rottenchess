@@ -227,6 +227,10 @@ Outputs:
   PlayerStatsTable:
     Description: ARN of the Player Stats Table
     Value: !Ref PlayerStatsTable
+  
+  ProcessedGamesTable:
+    Description: ARN of the Processed Games Table
+    Value: !Ref ProcessedGamesTable
 
   GameQueue:
     Description: URL of the Game Queue
