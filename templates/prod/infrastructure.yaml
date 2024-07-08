@@ -108,7 +108,6 @@ Resources:
     Properties:
       CapacityProviders:
         - FARGATE_SPOT
-        - FARGATE
       DefaultCapacityProviderStrategy:
         - CapacityProvider: FARGATE_SPOT
           Weight: 1
