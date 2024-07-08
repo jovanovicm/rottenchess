@@ -111,8 +111,6 @@ Resources:
         - FARGATE
       DefaultCapacityProviderStrategy:
         - CapacityProvider: FARGATE_SPOT
-          Weight: 9
-        - CapacityProvider: FARGATE
           Weight: 1
 
   ECSTaskDefinition:
