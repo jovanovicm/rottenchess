@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Header = () => {
+function Header() {
   return (
     <header className="site-header">
       <h1>RottenChess 🤢</h1>
