@@ -24,10 +24,6 @@ body {
     margin: 0 auto;
 }
 
-.filter-bar, .date-selectors {
-    margin-bottom: 20px;
-}
-
 .filter-bar {
     display: flex;
     justify-content: space-between;
@@ -46,20 +42,20 @@ body {
 
 .pill, select, .search-box {
     padding: 10px 20px;
-    border: 2px solid #3A4F41; 
+    border: 2px solid #3A4F41;
     border-radius: 20px;
     background-color: white;
     font-size: 0.9rem;
     font-weight: 700;
-    color: #3A4F41; 
+    color: #3A4F41;
     cursor: pointer;
     margin-right: 5px;
-    transition: background-color 0.3s, color 0.3s; 
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .pill:hover, .pill.active {
-    background-color: #2E4236;  
-    color: white;  
+    background-color: #2E4236;
+    color: white;
 }
 
 .search-box {
@@ -85,17 +81,13 @@ select {
     width: 100%;
     border-collapse: collapse;
     border-radius: 15px;
-    overflow: hidden; 
+    overflow: hidden;
 }
 
 .leaderboard th, .leaderboard td {
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #ddd;
-}
-
-.leaderboard th:nth-child(3), .leaderboard td:nth-child(3) {
-    border-right: 2px solid #ddd;
 }
 
 .leaderboard th {
@@ -110,6 +102,10 @@ select {
 
 .leaderboard tr:last-child td {
     border-bottom: none;
+}
+
+.rating-column {
+    border-right: 2px solid #ddd;
 }
 
 .division-header {
@@ -162,9 +158,14 @@ select {
     line-height: 1;
     padding: 0.2rem 0.3rem;
     display: inline-block;
+    margin-right: 5px;
 }
 
-.loader{
+.username {
+    padding-right: 5px;
+}
+
+.loader {
     margin: 0 0 2em;
     height: 100px;
     width: 100%;
@@ -175,17 +176,16 @@ select {
     vertical-align: top;
 }
 
-svg path,
-svg rect {
+svg path, svg rect {
     fill: #0b7e31;
 }
 
 .tooltip {
     position: relative;
     display: inline-block;
-  }
-  
-  .tooltip .tooltiptext {
+}
+
+.tooltip .tooltiptext {
     visibility: hidden;
     width: 120px;
     background-color: black;
@@ -200,12 +200,12 @@ svg rect {
     margin-left: -60px;
     opacity: 0;
     transition: opacity 0.3s;
-  }
-  
-  .tooltip:hover .tooltiptext {
+}
+
+.tooltip:hover .tooltiptext {
     visibility: visible;
     opacity: 1;
-  }
+}
 
 a {
     color: black;
