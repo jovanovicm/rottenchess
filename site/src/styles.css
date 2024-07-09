@@ -149,10 +149,26 @@ select {
     opacity: 1;
 }
 
+.highlight-personality {
+    background-color: #ededf5;
+  }
+
 .leaderboard-chess-title {
     background-color: #7c2929;
     border-radius: 0.3rem;
     color: white !important;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.2rem 0.3rem;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.custom-title {
+    background-color: #FE654F;
+    color: white !important;
+    border-radius: 0.3rem;
     font-size: 1rem;
     font-weight: 600;
     line-height: 1;
