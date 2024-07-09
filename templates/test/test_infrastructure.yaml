@@ -35,6 +35,14 @@ Resources:
         Name: message_id
         Type: String
   
+  MetadataTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-MetadataTable
+      PrimaryKey:
+        Name: metadata_id
+        Type: String
+    
   GameQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -54,6 +62,8 @@ Resources:
         - FARGATE
       DefaultCapacityProviderStrategy:
         - CapacityProvider: FARGATE_SPOT
+          Weight: 19
+        - CapacityProvider: FARGATE
           Weight: 1
 
   ECSTaskDefinition:
@@ -228,6 +238,14 @@ Outputs:
   PlayerStatsTable:
     Description: ARN of the Player Stats Table
     Value: !Ref PlayerStatsTable
+  
+  ProcessedGamesTable:
+    Description: ARN of the Processed Games Table
+    Value: !Ref ProcessedGamesTable
+  
+  MetadataTable:
+    Description: ARN of the Metadata Table
+    Value: !Ref MetadataTable
 
   GameQueue:
     Description: URL of the Game Queue

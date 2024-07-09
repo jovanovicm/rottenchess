@@ -19,4 +19,6 @@ Resources:
         GameImportsTable: !GetAtt TestInfrastructureStack.Outputs.GameImportsTable
         TrackedPlayersTable: !GetAtt TestInfrastructureStack.Outputs.TrackedPlayersTable
         PlayerStatsTable: !GetAtt TestInfrastructureStack.Outputs.PlayerStatsTable
+        ProcessedGamesTable: !GetAtt TestInfrastructureStack.Outputs.ProcessedGamesTable
+        MetadataTable: !GetAtt TestInfrastructureStack.Outputs.MetadataTable
         GameQueue: !GetAtt TestInfrastructureStack.Outputs.GameQueue

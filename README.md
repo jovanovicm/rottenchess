@@ -2,10 +2,10 @@
 ### What is Rotten Chess?
 Rotten Chess is a leaderboard website tracking the number of inaccuracies, mistakes, and blunders that top players and chess celebrities make in their most mistake-ridden and <ins>Rotten Chess</ins> games.
 
-The leaderboard is ranked by the average number of **Rots per Game (RPG)**.
-- **Blunders** are 3 Rots
-- **Mistakes** are 2 Rots
-- **Inaccuracies** are 1 Rot
+The leaderboard is ranked by the average number of **ROTS per Game (RpG)**.
+- **Blunders** are 3 ROTS
+- **Mistakes** are 2 ROTS
+- **Inaccuracies** are 1 ROTS
 
 
 ## How does Rotten Chess work?

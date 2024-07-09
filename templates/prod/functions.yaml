@@ -15,7 +15,11 @@ Parameters:
     Type: String
   PlayerStatsTable:
     Type: String
+  ProcessedGamesTable:
+    Type: String
   LeaderboardHistoryTable:
+    Type: String
+  MetadataTable:
     Type: String
   GameQueue:
     Type: String
@@ -176,6 +180,7 @@ Resources:
       Environment:
         Variables:
           GAME_IMPORTS_TABLE: !Ref GameImportsTable
+          PROCESSED_GAMES_TABLE: !Ref ProcessedGamesTable
       Architectures:
         - x86_64
   
@@ -193,6 +198,22 @@ Resources:
         Variables:
           PLAYER_STATS_TABLE: !Ref PlayerStatsTable
           LEADERBOARD_HISTORY_TABLE: !Ref LeaderboardHistoryTable
+      Architectures:
+        - x86_64
+  
+  LastUpdatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/last_updated/
+      Handler: last_updated.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-LastUpdated
+      Timeout: 30 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
       Architectures:
         - x86_64
   
@@ -404,6 +425,29 @@ Resources:
               "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST",
               "Parameters": {
                 "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Last Updated"
+            },
+            "Last Updated": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-LastUpdated:$LATEST"
               },
               "Retry": [
                 {
