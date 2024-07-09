@@ -7,21 +7,37 @@ body {
 }
 
 .site-header {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
     margin-bottom: 30px;
+    padding-left: 0px;
 }
 
-.site-header h1 {
+.site-logo {
+    width: 120px;
+    height: auto;
+    margin-right: 0px;
+}
+
+.site-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.site-title h1 {
     font-size: 3.5em;
     color: #112016;
     margin: 0.1em 0;
+    font-family: 'Impact', sans-serif;
 }
 
-.site-header p {
+.site-title p {
     font-size: 1.1em;
     color: #555;
-    max-width: 80%;
-    margin: 0 auto;
+    margin: 0;
 }
 
 .filter-bar {
@@ -41,8 +57,8 @@ body {
 }
 
 .pill, select, .search-box {
-    padding: 10px 20px;
-    border: 2px solid #3A4F41;
+    padding: 7px 20px;
+    border: 2px solid #324137;
     border-radius: 20px;
     background-color: white;
     font-size: 0.9rem;
@@ -54,7 +70,7 @@ body {
 }
 
 .pill:hover, .pill.active {
-    background-color: #2E4236;
+    background-color: #324137;
     color: white;
 }
 
@@ -80,23 +96,23 @@ select {
 .leaderboard {
     width: 100%;
     border-collapse: collapse;
-    border-radius: 15px;
+    border-radius: 10px;
     overflow: hidden;
 }
 
 .leaderboard th, .leaderboard td {
-    padding: 10px;
+    padding: 6px;
     text-align: left;
     border-bottom: 1px solid #ddd;
 }
 
 .leaderboard th {
-    background-color: #3A4F41;
+    background-color: #324137;
     color: white;
     font-weight: bold;
     cursor: pointer;
     position: relative;
-    padding: 10px;
+    padding: 7px;
     text-align: left;
 }
 
@@ -160,7 +176,7 @@ select {
     font-size: 1rem;
     font-weight: 600;
     line-height: 1;
-    padding: 0.2rem 0.3rem;
+    padding: 0.1rem 0.3rem;
     display: inline-block;
     margin-right: 5px;
 }
@@ -172,7 +188,7 @@ select {
     font-size: 1rem;
     font-weight: 600;
     line-height: 1;
-    padding: 0.2rem 0.3rem;
+    padding: 0.1rem 0.3rem;
     display: inline-block;
     margin-right: 5px;
 }

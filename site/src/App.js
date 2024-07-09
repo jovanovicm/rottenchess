@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import FilterBar from './components/FilterBar';
 import Leaderboard from './components/Leaderboard';
-import useLeaderboard from './utils/api';  // Update path
+import useLeaderboard from './utils/api';
 
 function App() {
   const [currentFilter, setCurrentFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear().toString());
   const [currentMonth, setCurrentMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
-  const [sortColumn, setSortColumn] = useState(3);  // Default to RpG
-  const [sortDirection, setSortDirection] = useState('desc');  // Default to descending
+  const [sortColumn, setSortColumn] = useState(3);
+  const [sortDirection, setSortDirection] = useState('desc');
 
   const { leaderboardData, isLoading, updateLeaderboard } = useLeaderboard();
 
