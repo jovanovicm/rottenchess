@@ -1,5 +1,10 @@
 import React from 'react';
 
+const customTitles = {
+  "markoj000": "Creator",
+  "brydog123": "Creator",
+};
+
 function getCountryCodeClass(country) {
   return `country-${country.toLowerCase()}`;
 }
@@ -15,15 +20,27 @@ function calculateRPG(stats, totalGames) {
 }
 
 function LeaderboardRow({ player, currentFilter }) {
-  const { stats, totalGames } = player;
+  const { stats, totalGames, username } = player;
   const rpg = calculateRPG(stats, totalGames);
+  const customTitle = customTitles[username];
+  const normalTitle = player.player_title;
 
   return (
-    <tr data-category={player.is_leaderboard_player ? 'top50' : 'personality'}>
+    <tr data-category={player.is_leaderboard_player ? 'top50' : 'personality'}
+        className={player.is_leaderboard_player ? '' : 'highlight-personality'}>
       {currentFilter === 'top50' && <td>{player.player_rank}</td>}
       <td>
-        {player.player_title !== 'None' && <div className="leaderboard-chess-title">{player.player_title}</div>}
-        <a href={`https://www.chess.com/member/${player.username}`} target="_blank" rel="noopener noreferrer" className="username">
+        {customTitle && 
+          <div className="custom-title">
+            {customTitle}
+          </div>
+        }
+        {normalTitle && normalTitle !== 'None' && 
+          <div className="leaderboard-chess-title">
+            {normalTitle}
+          </div>
+        }
+        <a href={`https://www.chess.com/member/${username}`} target="_blank" rel="noopener noreferrer" className="username">
           {player.player_name}
         </a>
         <div className={`country-flag ${getCountryCodeClass(player.country)}`}></div>
