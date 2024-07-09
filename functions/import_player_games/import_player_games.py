@@ -14,10 +14,11 @@ def lambda_handler(event, context):
     today = datetime.now().strftime("%m-%d-%Y")
     remove_period = (datetime.now() - timedelta(days=30)).strftime("%m-%d-%Y")
 
-    # Chess Personalities + me
+    # Chess Personalities + me and my bro
     chess_personalities = [
-        {'username': 'markoj000', 'display': 'username'}, #me
-        {'username': 'gothamchess', 'display': 'username'},
+        {'username': 'markoj000', 'display': 'username'}, # creator 1
+        {'username': 'brydog123', 'display': 'username'}, # creator 2
+        {'username': 'gothamchess', 'display': 'name'},
         {'username': 'alexandrabotez', 'display': 'name'},
         {'username': 'supersecret12345', 'display': 'username'},
         {'username': 'nemsko', 'display': 'name'}, 
@@ -32,7 +33,9 @@ def lambda_handler(event, context):
         {'username': 'janistantv', 'display': 'username'},
         {'username': 'roseychess', 'display': 'name'},
         {'username': 'gmcanty', 'display': 'username'},
-        {'username': 'metharina', 'display': 'username'}
+        {'username': 'metharina', 'display': 'username'},
+        {'username': 'joebruin', 'display': 'username'},
+        {'username': 'annamaja', 'display': 'username'}
     ]
 
     leaderboard_dict = get_leaderboard(USER_AGENT_EMAIL)
