@@ -45,7 +45,8 @@ def lambda_handler(event, context):
         if total_time is not None and total_time < min_time:
             min_time = total_time
             optimal_games_per_message = games_per_message
-
+    
+    print(f"Total number of games: {total_games}")
     print(f"Optimal number of games per message: {optimal_games_per_message} with a total time of {min_time} minutes")
 
     scan_kwargs = {'Limit': optimal_games_per_message}
