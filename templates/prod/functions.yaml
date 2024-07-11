@@ -282,6 +282,22 @@ Resources:
       Architectures:
         - x86_64
   
+  GetLastUpdatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_last_updated/
+      Handler: get_last_updated.lambda_handler
+      Runtime: python3.12
+      FunctionName: rotten-chess-GetLastUpdated
+      Timeout: 30
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+      Architectures:
+        - x86_64
+
   # Step Functions
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -483,6 +499,10 @@ Outputs:
   GetLeaderboardHistoryFunction:
     Description: ARN of the GetLeaderboardHistory Lambda function
     Value: !GetAtt GetLeaderboardHistoryFunction.Arn
+  
+  GetLastUpdatedFunction:
+    Description: ARN of the GetLastUpdated Lambda function
+    Value: !GetAtt GetLastUpdatedFunction.Arn
 
   LambdaExecutionRole:
     Description: ARN of the Lambda Execution Role
