@@ -10,6 +10,8 @@ Parameters:
     Type: String
   GetLeaderboardHistoryFunction:
     Type: String
+  GetLastUpdatedFunction:
+    Type: String
 
 Resources:
   APILogGroup:
@@ -67,6 +69,14 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetLeaderboardHistoryFunction}/invocations
       PayloadFormatVersion: "2.0"
+  
+  GetLastUpdatedIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetLastUpdatedFunction}/invocations
+      PayloadFormatVersion: "2.0"
 
   GetPlayerStatsRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -99,6 +109,14 @@ Resources:
       RouteKey: GET /leaderboard
       AuthorizationType: NONE
       Target: !Sub integrations/${GetLeaderboardHistoryIntegration}
+  
+  GetLastUpdatedRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      RouteKey: GET /info/lastupdate
+      AuthorizationType: NONE
+      Target: !Sub integrations/${GetLastUpdatedIntegration}
 
   LambdaInvokePermissionGetPlayerStats:
     Type: AWS::Lambda::Permission
@@ -131,6 +149,14 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/leaderboard
+  
+  LambdaInvokePermissionGetLastUpdated:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetLastUpdatedFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/info/lastupdate
 
   ApiStage:
     Type: AWS::ApiGatewayV2::Stage
