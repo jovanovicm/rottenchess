@@ -20,14 +20,22 @@ def lambda_handler(event, context):
     ]
 
     for service in services:
-        ec2.create_vpc_endpoint(
-            VpcEndpointType=ENDPOINT_TYPE,
-            VpcId=VPC_ID,
-            ServiceName=service,
-            SubnetIds=SUBNET_ID,
-            SecurityGroupIds=SECURITY_GROUP_ID,
-            PrivateDnsEnabled=PRIVATE_DNS_ENABLED
-        )
+        try:
+            ec2.create_vpc_endpoint(
+                VpcEndpointType=ENDPOINT_TYPE,
+                VpcId=VPC_ID,
+                ServiceName=service,
+                SubnetIds=SUBNET_ID,
+                SecurityGroupIds=SECURITY_GROUP_ID,
+                PrivateDnsEnabled=PRIVATE_DNS_ENABLED
+            )
+        except ec2.exceptions.ClientError as e:
+            error_message = e.response['Error']['Message']
+            if "conflicting DNS domain" in error_message:
+                print(f"Skipping {service} due to existing private link: {error_message}")
+                continue
+            else:
+                raise e
 
     return {
         'statusCode': 200
