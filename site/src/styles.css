@@ -312,6 +312,12 @@ select {
     text-align: left;
 }
 
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
 .th-content {
     display: flex;
     align-items: center;
