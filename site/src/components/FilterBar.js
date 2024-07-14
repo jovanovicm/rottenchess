@@ -14,17 +14,17 @@ function FilterBar({ currentFilter, setCurrentFilter, searchTerm, setSearchTerm,
 
   return (
     <div className="filter-bar">
+      <input 
+        type="text" 
+        className="pill search-box" 
+        placeholder="Search Player..." 
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
       <div className="left-filters">
         <button className={`pill ${currentFilter === 'all' ? 'active' : ''}`} onClick={() => handleFilterClick('all')} id="all">All</button>
         <button className={`pill ${currentFilter === 'top50' ? 'active' : ''}`} onClick={() => handleFilterClick('top50')}>Top 50 Blitz</button>
         <button className={`pill ${currentFilter === 'personality' ? 'active' : ''}`} onClick={() => handleFilterClick('personality')}>Chess Personalities</button>
-        <input 
-          type="text" 
-          className="pill search-box" 
-          placeholder="Search Player..." 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
       </div>
       <div className="right-filters">
         <select value={currentYear} onChange={(e) => setCurrentYear(e.target.value)}>
