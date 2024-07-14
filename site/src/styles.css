@@ -41,9 +41,15 @@ body {
 }
 
 .last-update {
-    margin-bottom: 10px;
-    font-size: 14px;
+    font-size: 11px;
     color: #555;
+    margin-top: 5px;
+    margin-left: 15px;
+    margin-bottom: 5px;
+}
+
+p {
+    margin: 0;
 }
 
 .filter-bar {
@@ -53,36 +59,35 @@ body {
     margin-bottom: 20px;
     background-color: #fff;
     border-radius: 20px;
-    padding: 20px;
+    padding: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 10px;
 }
 
-.search-box {
-    order: -1; /* Move search box to the top in full screen */
-    width: 200px;
-    margin-bottom: 0;
+.left-group {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    flex: 1;
+    align-items: center;
 }
 
-.left-filters {
+.left-filters, .right-filters {
     display: flex;
     align-items: center;
-    order: 1; /* Keep left filters on the left side */
 }
 
-.right-filters {
-    display: flex;
-    align-items: center;
-    order: 2; /* Keep right filters on the right side */
+.left-filters .pill {
+    margin-right: 10px;
 }
 
-.right-filters select {
-    margin-left: 10px;
-    width: auto; /* Ensure select width auto-adjusts */
+.left-filters .pill:last-child {
+    margin-right: 0;
 }
 
 .pill, select, .search-box {
-    padding: 7px 20px;
+    padding: 5px 20px;
     border: 2px solid #324137;
     border-radius: 20px;
     background-color: white;
@@ -90,8 +95,18 @@ body {
     font-weight: 700;
     color: #3A4F41;
     cursor: pointer;
-    margin-right: 5px;
     transition: background-color 0.3s, color 0.3s;
+    white-space: nowrap;
+}
+
+.pill {
+    flex: 0 1 auto;
+    min-width: 100px;
+    box-sizing: border-box;
+}
+
+.search-box {
+    width: 200px;
 }
 
 .pill:hover, .pill.active {
@@ -114,37 +129,163 @@ select {
     background-position-y: 50%;
 }
 
-@media only screen and (max-width: 768px) {
-    .filter-bar {
-        flex-direction: column;
-        align-items: flex-start;
+.right-filters select {
+    margin-left: 10px;
+    flex: 1 1 0;
+}
+
+@media only screen and (min-width: 1218px) {
+    .leaderboard th .short-text,
+    .leaderboard th .icon-only {
+        display: none;
     }
 
-    .left-filters, .right-filters {
+    .leaderboard th .full-text,
+    .leaderboard th .text-with-icon {
+        display: inline-block;
+    }
+  }
+
+@media only screen and (max-width: 1217px) {
+    .leaderboard th .full-text,
+    .leaderboard th .text-with-icon {
+        display: none;
+    }
+
+    .leaderboard th .short-text,
+    .leaderboard th .icon-only {
+        display: inline-block;
+    }
+
+    .leaderboard th {
+        padding-right: 25px;
+    }
+}
+
+@media only screen and (max-width: 1045px) {
+    .site-header {
+        margin-bottom: 20px;
+    }
+
+    .site-logo {
+        width: 80px;
+    }
+
+    .site-title h1 {
+        font-size: 2.5em;
+    }
+
+    .site-title p {
+        font-size: 1em;
+    }
+
+    .filter-bar {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+    }
+
+    .left-group {
+        flex-direction: column;
         width: 100%;
+    }
+
+    .left-filters {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .left-filters .pill {
+        flex: 1 0 auto;
+        min-width: 0;
+    }
+
+    .left-filters .pill:last-child {
+        margin-right: 0;
+    }
+
+    .search-box {
+        flex: 1 0 auto;
+        width: 100%;
+        padding: 5px 20px;
+    }
+
+    .right-group {
+        width: 100%;
+    }
+
+    .right-filters {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .right-filters select {
+        flex: 1 1 0;
+    }
+
+    .right-filters select:first-child {
+        margin-left: 0;
+    }
+
+    .leaderboard th .full-text,
+    .leaderboard th .text-with-icon {
+      display: none;
+    }
+  
+    .leaderboard th .short-text,
+    .leaderboard th .icon-only {
+      display: inline-block;
+    }
+
+    .leaderboard th {
+        padding-right: 30px;
+    }
+    
+    .sort-arrows {
+        right: 2px;
+    }
+  }
+
+@media only screen and (max-width: 640px) {
+    .site-header {
+        margin-bottom: 15px;
+    }
+
+    .site-logo {
+        width: 60px;
+    }
+
+    .site-title h1 {
+        font-size: 2em;
+    }
+
+    .site-title p {
+        font-size: 0.9em;
+    }
+    
+    .left-filters {
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .left-filters .pill, .search-box {
+        width: 100%;
+        margin-bottom: 5px;
+        padding: 5px 20px;
     }
 
     .right-filters {
         flex-direction: row;
         justify-content: space-between;
-        width: 100%;
-    }
-
-    .pill, select {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-
-    .search-box {
-        order: 3;
-        width: 100%;
-        margin-bottom: 10px;
     }
 
     .right-filters select {
-        width: 48%;
+        flex: 1 1 0;
+    }
+
+    .right-filters select:first-child {
+        margin-left: 0;
     }
 }
 
@@ -169,6 +310,13 @@ select {
     position: relative;
     padding: 7px;
     text-align: left;
+}
+
+.th-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 25px;
 }
 
 .leaderboard tr:last-child td {
@@ -202,16 +350,17 @@ select {
 }
 
 .sort-arrows {
-    display: inline-block;
+    display: flex;
+    flex-direction: column;
     position: absolute;
     right: 5px;
     top: 50%;
     transform: translateY(-50%);
     height: 20px;
+    width: 15px;
 }
 
 .sort-arrow {
-    display: block;
     width: 12px;
     height: 50%;
     opacity: 0.3;

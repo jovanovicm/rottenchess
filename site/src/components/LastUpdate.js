@@ -22,7 +22,7 @@ function LastUpdate() {
 
   return (
     <div className="last-update">
-      {lastUpdate && <p>Last Update: {lastUpdate}</p>}
+      {lastUpdate && <p>Last updated: {lastUpdate}</p>}
     </div>
   );
 }

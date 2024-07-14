@@ -32,7 +32,9 @@ function App() {
   return (
     <div className="App">
       <Header />
-      <LastUpdate />  {/* Add the LastUpdate component */}
+      <div className="last-update-container">
+        <LastUpdate />
+      </div>
       <FilterBar 
         currentFilter={currentFilter}
         setCurrentFilter={setCurrentFilter}
