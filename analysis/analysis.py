@@ -40,11 +40,12 @@ def shutdown():
 def signal_handler(signum, frame):
     global shutdown_flag
 
-    sqs.change_message_visibility(
-            QueueUrl=QUEUE_URL,
-            ReceiptHandle=message[0]['ReceiptHandle'],
-            VisibilityTimeout=0
-        )
+    if message:
+        sqs.change_message_visibility(
+                QueueUrl=QUEUE_URL,
+                ReceiptHandle=message[0]['ReceiptHandle'],
+                VisibilityTimeout=0
+            )
     
     shutdown()
     shutdown_flag = True
@@ -201,10 +202,11 @@ def fetch_message():
     message = response.get('Messages', [])
 
 def delete_message(receipt_handle, sqs):
-    sqs.delete_message(
-        QueueUrl=QUEUE_URL,
-        ReceiptHandle=receipt_handle
-    )
+    if message:    
+        sqs.delete_message(
+            QueueUrl=QUEUE_URL,
+            ReceiptHandle=receipt_handle
+        )
 
 def analyze_moves(moves, engine, board):
     stats = {'white': {'inaccuracies': 0, 'mistakes': 0, 'blunders': 0},
@@ -224,8 +226,8 @@ def analyze_moves(moves, engine, board):
             move = board.parse_san(move_san)
             board.push(move)
             log_print(move_san)
-        except chess.IllegalMoveError:
-            log_print(f"Illegal move detected, skipping this game...")
+        except Exception as e:
+            log_print(f"Error detected: {str(e)}, skipping this game.")
             return None
 
         info_after = engine.analyse(board, chess.engine.Limit(depth=20))
