@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import LeaderboardRow from './LeaderboardRow';
 
 function calculateRPG(stats, totalGames) {
@@ -59,6 +59,14 @@ function sortData(data, column, direction) {
 }
 
 function Leaderboard({ data, isLoading, currentFilter, searchTerm, sortColumn, sortDirection, setSortColumn, setSortDirection }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 968);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 968);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleSort = (columnIndex) => {
     if (columnIndex === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -112,66 +120,111 @@ function Leaderboard({ data, isLoading, currentFilter, searchTerm, sortColumn, s
   return (
     <table className="leaderboard">
       <thead>
-        <tr>
+      <tr>
           {currentFilter === 'top50' && (
             <th onClick={() => handleSort(0)}>
-              Ranking
-              <div className="sort-arrows">
-                <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 0 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
-                <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 0 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+              <div className="th-content">
+                <span className="full-text">Ranking</span>
+                <span className="short-text">Rk.</span>
+                <div className="sort-arrows">
+                  <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 0 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
+                  <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 0 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+                </div>
               </div>
             </th>
           )}
-          <th onClick={() => handleSort(1)}>Username</th>
+          <th onClick={() => handleSort(1)}>
+            <div className="th-content">
+              Username
+              <div className="sort-arrows">
+                <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 1 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
+                <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 1 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+              </div>
+            </div>
+          </th>
           <th onClick={() => handleSort(2)} className="rating-column">
-            Rating
-            <div className="sort-arrows">
-              <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 2 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
-              <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 2 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+            <div className="th-content">
+              Rating
+              <div className="sort-arrows">
+                <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 2 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
+                <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 2 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+              </div>
             </div>
           </th>
           <th onClick={() => handleSort(3)}>
-            RpG
-            <div className="sort-arrows">
-              <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 3 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
-              <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 3 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+            <div className="th-content">
+              RpG
+              <div className="sort-arrows">
+                <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 3 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
+                <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 3 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+              </div>
             </div>
           </th>
           <th onClick={() => handleSort(4)}>
-            Games played
-            <div className="sort-arrows">
-              <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 4 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
-              <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 4 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+            <div className="th-content">
+              <span className="full-text">Games played</span>
+              <span className="short-text">Gp</span>
+              <div className="sort-arrows">
+                <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 4 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
+                <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 4 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+              </div>
             </div>
           </th>
           <th onClick={() => handleSort(5)}>
-            Blunders 
-            <span className="icon-wrapper">
-              <img src="/icons/blunder.png" className="icon" alt="Blunder icon" />
-            </span>
-            <div className="sort-arrows">
-              <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 5 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
-              <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 5 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+            <div className="th-content">
+              <span className="text-with-icon">
+                Blunders 
+                <span className="icon-wrapper">
+                  <img src="/icons/blunder.png" className="icon" alt="Blunder icon" />
+                </span>
+              </span>
+              <span className="icon-only">
+                <span className="icon-wrapper">
+                  <img src="/icons/blunder.png" className="icon" alt="Blunder icon" />
+                </span>
+              </span>
+              <div className="sort-arrows">
+                <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 5 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
+                <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 5 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+              </div>
             </div>
           </th>
           <th onClick={() => handleSort(6)}>
-            Mistakes 
-            <span className="icon-wrapper">
-              <img src="/icons/mistake.png" className="icon" alt="Mistake icon" />
-            </span>
-            <div className="sort-arrows">
-              <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 6 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
-              <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 6 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+            <div className="th-content">
+              <span className="text-with-icon">
+                Mistakes 
+                <span className="icon-wrapper">
+                  <img src="/icons/mistake.png" className="icon" alt="Mistake icon" />
+                </span>
+              </span>
+              <span className="icon-only">
+                <span className="icon-wrapper">
+                  <img src="/icons/mistake.png" className="icon" alt="Mistake icon" />
+                </span>
+              </span>
+              <div className="sort-arrows">
+                <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 6 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
+                <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 6 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+              </div>
             </div>
           </th>
           <th onClick={() => handleSort(7)}>
-            Inaccuracies 
-            <span className="icon-wrapper">
-              <img src="/icons/inaccuracy.png" className="icon" alt="Inaccuracy icon" />
-            </span>
-            <div className="sort-arrows">
-              <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 7 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
-              <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 7 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+            <div className="th-content">
+              <span className="text-with-icon">
+                Inaccuracies 
+                <span className="icon-wrapper">
+                  <img src="/icons/inaccuracy.png" className="icon" alt="Inaccuracy icon" />
+                </span>
+              </span>
+              <span className="icon-only">
+                <span className="icon-wrapper">
+                  <img src="/icons/inaccuracy.png" className="icon" alt="Inaccuracy icon" />
+                </span>
+              </span>
+              <div className="sort-arrows">
+                <img src="/icons/arrow-up.png" className={`sort-arrow ${sortColumn === 7 && sortDirection === 'asc' ? 'active' : ''}`} alt="Sort ascending" />
+                <img src="/icons/arrow-down.png" className={`sort-arrow ${sortColumn === 7 && sortDirection === 'desc' ? 'active' : ''}`} alt="Sort descending" />
+              </div>
             </div>
           </th>
         </tr>
@@ -182,7 +235,7 @@ function Leaderboard({ data, isLoading, currentFilter, searchTerm, sortColumn, s
         ))}
       </tbody>
     </table>
-  );  
+  );
 }
 
 export default Leaderboard;
