@@ -1,8 +1,8 @@
 import React from 'react';
 
 const customTitles = {
-  "markoj000": "Creator",
-  "brydog123": "Creator",
+  "markoj000": "Dev",
+  "brydog123": "Dev",
 };
 
 function getCountryCodeClass(country) {
