@@ -81,7 +81,8 @@ function Leaderboard({ data, isLoading, currentFilter, searchTerm, sortColumn, s
       const matchesFilter = currentFilter === 'all' || 
         (currentFilter === 'top50' && player.is_leaderboard_player) || 
         (currentFilter === 'personality' && !player.is_leaderboard_player);
-      const matchesSearch = player.username.toLowerCase().includes(searchTerm.toLowerCase());
+      const searchableText = `${player.username} ${player.player_name || ''}`.toLowerCase();
+      const matchesSearch = searchableText.includes(searchTerm.toLowerCase());
       return matchesFilter && matchesSearch;
     });
     return sortData(filtered, sortColumn, sortDirection);
