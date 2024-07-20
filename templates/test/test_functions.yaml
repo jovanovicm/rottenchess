@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Test Rotten Chess Functions
+Description: Production Rotten Chess Functions
 
 Parameters:
   VPC:
@@ -16,6 +16,8 @@ Parameters:
   PlayerStatsTable:
     Type: String
   ProcessedGamesTable:
+    Type: String
+  LeaderboardHistoryTable:
     Type: String
   MetadataTable:
     Type: String
@@ -135,6 +137,23 @@ Resources:
       Architectures:
         - x86_64
   
+  UpdateLeaderboardHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/update_leaderboard_history/
+      Handler: update_leaderboard_history.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-UpdateLeaderboardHistory
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !ImportValue rotten-chess-LambdaExecutionRole
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+          LEADERBOARD_HISTORY_TABLE: !Ref LeaderboardHistoryTable
+      Architectures:
+        - x86_64
+  
   LastUpdatedFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -151,6 +170,87 @@ Resources:
       Architectures:
         - x86_64
   
+  # API Functions
+  GetPlayerStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_player_stats/
+      Handler: get_player_stats.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-GetPlayerStats
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !ImportValue rotten-chess-LambdaExecutionRole
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+  
+  BatchGetPlayerStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/batch_get_player_stats/
+      Handler: batch_get_player_stats.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-BatchGetPlayerStats
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !ImportValue rotten-chess-LambdaExecutionRole
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+
+  GetPlayersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_players/
+      Handler: get_players.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-GetPlayers
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !ImportValue rotten-chess-LambdaExecutionRole
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+    
+  GetLeaderboardHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_leaderboard_history/
+      Handler: get_leaderboard_history.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-GetLeaderboardHistory
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !ImportValue rotten-chess-LambdaExecutionRole
+      Environment:
+        Variables:
+          LEADERBOARD_HISTORY_TABLE: !Ref LeaderboardHistoryTable
+      Architectures:
+        - x86_64
+  
+  GetLastUpdatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_last_updated/
+      Handler: get_last_updated.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-GetLastUpdated
+      Timeout: 30
+      MemorySize: 128  
+      Role: !ImportValue rotten-chess-LambdaExecutionRole
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+      Architectures:
+        - x86_64
+
   # Step Functions
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -170,9 +270,9 @@ Resources:
                   "States": {
                     "Import Player Games": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ImportPlayerGames:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGames:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ImportPlayerGames:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGames:$LATEST"
                       },
                       "ResultPath": "$.importResult",
                       "Retry": [
@@ -197,9 +297,9 @@ Resources:
                   "States": {
                     "Provision PrivateLinks": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-PrivateLinkProvision:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvision:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-PrivateLinkProvision:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvision:$LATEST"
                       },
                       "ResultPath": "$.provisionResult",
                       "Retry": [
@@ -226,7 +326,7 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-EnqueueDynamoDBItems:$LATEST",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-EnqueueDynamoDBItems:$LATEST",
                 "Payload.$": "$"
               },
               "Retry": [
@@ -246,9 +346,9 @@ Resources:
             },
             "Check Queue": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-CheckQueue:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueue:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-CheckQueue:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueue:$LATEST"
               },
               "Next": "Is Queue Empty"
             },
@@ -270,9 +370,9 @@ Resources:
             },
             "Deprovision PrivateLinks": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-PrivateLinkDeprovision:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovision:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-PrivateLinkDeprovision:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovision:$LATEST"
               },
               "Retry": [
                 {
@@ -291,9 +391,9 @@ Resources:
             },
             "Delete DynamoDB Items": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeleteDynamoDBItems:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeleteDynamoDBItems:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST"
               },
               "Retry": [
                 {
@@ -316,7 +416,7 @@ Resources:
               "OutputPath": "$.Payload",
               "Parameters": {
                 "Payload.$": "$",
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-LastUpdated:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-LastUpdated:$LATEST"
               },
               "Retry": [
                 {
@@ -335,3 +435,24 @@ Resources:
             }
           }
         }
+
+Outputs:
+  GetPlayerStatsFunction:
+    Description: ARN of the GetPlayerStats Lambda function
+    Value: !GetAtt GetPlayerStatsFunction.Arn
+  
+  BatchGetPlayerStatsFunction:
+    Description: ARN of the BatchGetPlayerStats Lambda function
+    Value: !GetAtt BatchGetPlayerStatsFunction.Arn
+
+  GetPlayersFunction:
+    Description: ARN of the GetPlayers Lambda function
+    Value: !GetAtt GetPlayersFunction.Arn
+  
+  GetLeaderboardHistoryFunction:
+    Description: ARN of the GetLeaderboardHistory Lambda function
+    Value: !GetAtt GetLeaderboardHistoryFunction.Arn
+  
+  GetLastUpdatedFunction:
+    Description: ARN of the GetLastUpdated Lambda function
+    Value: !GetAtt GetLastUpdatedFunction.Arn

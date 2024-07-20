@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Production Rotten Chess REST API Resources
+Description: Production Rotten Chess API Resources
 
 Parameters:
   GetPlayerStatsFunction:
@@ -21,112 +21,102 @@ Resources:
       RetentionInDays: 14
 
   RottenChessAPI:
-    Type: AWS::ApiGateway::RestApi
+    Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: RottenChessAPI
-      Description: Rotten Chess REST API
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - https://rottenchess.com
+          - https://www.rottenchess.com
+          - http://localhost:3000
+        AllowMethods:
+          - GET
+          - POST
+        AllowHeaders:
+          - Content-Type
+          - X-Amz-Date
+          - Authorization
 
-  GetPlayersResource:
-    Type: AWS::ApiGateway::Resource
+  GetPlayerStatsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
     Properties:
-      RestApiId: !Ref RottenChessAPI
-      ParentId: !GetAtt RottenChessAPI.RootResourceId
-      PathPart: players
-
-  GetPlayerStatsResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      RestApiId: !Ref RottenChessAPI
-      ParentId: !Ref GetPlayersResource
-      PathPart: '{username}'
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlayerStatsFunction}/invocations
+      PayloadFormatVersion: "2.0"
   
-  BatchPlayerStatsResource:
-    Type: AWS::ApiGateway::Resource
+  BatchGetPlayerStatsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
     Properties:
-      RestApiId: !Ref RottenChessAPI
-      ParentId: !Ref GetPlayersResource
-      PathPart: batch
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BatchGetPlayerStatsFunction}/invocations
+      PayloadFormatVersion: "2.0"
 
-  GetPlayerStatsMethod:
-    Type: AWS::ApiGateway::Method
+  GetPlayersIntegration:
+    Type: AWS::ApiGatewayV2::Integration
     Properties:
-      RestApiId: !Ref RottenChessAPI
-      ResourceId: !Ref GetPlayerStatsResource
-      HttpMethod: GET
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlayersFunction}/invocations
+      PayloadFormatVersion: "2.0"
+  
+  GetLeaderboardHistoryIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetLeaderboardHistoryFunction}/invocations
+      PayloadFormatVersion: "2.0"
+  
+  GetLastUpdatedIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetLastUpdatedFunction}/invocations
+      PayloadFormatVersion: "2.0"
+
+  GetPlayerStatsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref RottenChessAPI
+      RouteKey: GET /players/{username}
       AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlayerStatsFunction}/invocations
-
-  BatchGetPlayerStatsMethod:
-    Type: AWS::ApiGateway::Method
+      Target: !Sub integrations/${GetPlayerStatsIntegration}
+  
+  BatchGetPlayerStatsRoute:
+    Type: AWS::ApiGatewayV2::Route
     Properties:
-      RestApiId: !Ref RottenChessAPI
-      ResourceId: !Ref BatchPlayerStatsResource
-      HttpMethod: POST
+      ApiId: !Ref RottenChessAPI
+      RouteKey: POST /players/batch
       AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BatchGetPlayerStatsFunction}/invocations
+      Target: !Sub integrations/${BatchGetPlayerStatsIntegration}
 
-  GetPlayersMethod:
-    Type: AWS::ApiGateway::Method
+  GetPlayersRoute:
+    Type: AWS::ApiGatewayV2::Route
     Properties:
-      RestApiId: !Ref RottenChessAPI
-      ResourceId: !Ref GetPlayersResource
-      HttpMethod: GET
+      ApiId: !Ref RottenChessAPI
+      RouteKey: GET /players
       AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlayersFunction}/invocations
-
-  LeaderboardResource:
-    Type: AWS::ApiGateway::Resource
+      Target: !Sub integrations/${GetPlayersIntegration}
+  
+  GetLeaderboardHistoryRoute:
+    Type: AWS::ApiGatewayV2::Route
     Properties:
-      RestApiId: !Ref RottenChessAPI
-      ParentId: !GetAtt RottenChessAPI.RootResourceId
-      PathPart: leaderboard
-
-  GetLeaderboardHistoryMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref RottenChessAPI
-      ResourceId: !Ref LeaderboardResource
-      HttpMethod: GET
+      ApiId: !Ref RottenChessAPI
+      RouteKey: GET /leaderboard
       AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetLeaderboardHistoryFunction}/invocations
-
-  InfoResource:
-    Type: AWS::ApiGateway::Resource
+      Target: !Sub integrations/${GetLeaderboardHistoryIntegration}
+  
+  GetLastUpdatedRoute:
+    Type: AWS::ApiGatewayV2::Route
     Properties:
-      RestApiId: !Ref RottenChessAPI
-      ParentId: !GetAtt RottenChessAPI.RootResourceId
-      PathPart: info
-
-  LastUpdateResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      RestApiId: !Ref RottenChessAPI
-      ParentId: !Ref InfoResource
-      PathPart: lastupdate
-
-  GetLastUpdatedMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref RottenChessAPI
-      ResourceId: !Ref LastUpdateResource
-      HttpMethod: GET
+      ApiId: !Ref RottenChessAPI
+      RouteKey: GET /info/lastupdate
       AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetLastUpdatedFunction}/invocations
+      Target: !Sub integrations/${GetLastUpdatedIntegration}
 
   LambdaInvokePermissionGetPlayerStats:
     Type: AWS::Lambda::Permission
@@ -134,15 +124,15 @@ Resources:
       FunctionName: !Ref GetPlayerStatsFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/*/GET/players/*
-
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/players/*
+  
   LambdaInvokePermissionBatchGetPlayerStats:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref BatchGetPlayerStatsFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/*/POST/players/batch
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/POST/players/batch
 
   LambdaInvokePermissionGetPlayers:
     Type: AWS::Lambda::Permission
@@ -150,43 +140,34 @@ Resources:
       FunctionName: !Ref GetPlayersFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/*/GET/players
-
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/players
+  
   LambdaInvokePermissionGetLeaderboardHistory:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref GetLeaderboardHistoryFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/*/GET/leaderboard
-
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/leaderboard
+  
   LambdaInvokePermissionGetLastUpdated:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref GetLastUpdatedFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/*/GET/info/lastupdate
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/prod/GET/info/lastupdate
 
-  ApiDeployment:
-    Type: AWS::ApiGateway::Deployment
-    DependsOn:
-      - GetPlayerStatsMethod
-      - BatchGetPlayerStatsMethod
-      - GetPlayersMethod
-      - GetLeaderboardHistoryMethod
-      - GetLastUpdatedMethod
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
     Properties:
-      RestApiId: !Ref RottenChessAPI
+      ApiId: !Ref RottenChessAPI
       StageName: prod
-      StageDescription:
-        LoggingLevel: INFO
-        DataTraceEnabled: true
-        MetricsEnabled: true
-        AccessLogSetting:
-          DestinationArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${APILogGroup}:*
-          Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","caller":"$context.identity.caller","user":"$context.identity.user","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","statusCode":"$context.responseType","protocol":"$context.protocol","responseLength":"$context.responseLength","errorMessage":"$context.error.message","integrationErrorMessage":"$context.integrationErrorMessage"}'
-    
+      AutoDeploy: true
+      AccessLogSettings:
+        DestinationArn: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${APILogGroup}:*
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","caller":"$context.identity.caller","user":"$context.identity.user","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","message":"$context.integrationErrorMessage","protocol":"$context.protocol","responseLength":"$context.responseLength"}'
+
   Certificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
@@ -195,21 +176,20 @@ Resources:
       DomainValidationOptions:
         - DomainName: api.rottenchess.com
           HostedZoneId: Z09567002DFAQSHJR757S
-
+  
   APIDomain:
-    Type: AWS::ApiGateway::DomainName
+    Type: AWS::ApiGatewayV2::DomainName
     Properties:
       DomainName: api.rottenchess.com
-      RegionalCertificateArn: !Ref Certificate
-      EndpointConfiguration:
-        Types:
-          - REGIONAL
+      DomainNameConfigurations:
+        - EndpointType: REGIONAL
+          CertificateArn: !Ref Certificate
 
   ApiMapping:
-    Type: AWS::ApiGateway::BasePathMapping
+    Type: AWS::ApiGatewayV2::ApiMapping
     Properties:
+      ApiId: !Ref RottenChessAPI
       DomainName: !Ref APIDomain
-      RestApiId: !Ref RottenChessAPI
       Stage: prod
 
   Route53RecordSet:

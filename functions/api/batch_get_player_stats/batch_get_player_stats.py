@@ -17,14 +17,43 @@ def lambda_handler(event, context):
     PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
     dynamodb = boto3.resource('dynamodb')
 
-    body = json.loads(event['body'])
-    usernames = body.get('usernames', [])
+    allowed_origins = [
+        'https://rottenchess.com',
+        'https://www.rottenchess.com',
+        'http://localhost:3000'
+    ]
+
+    origin = event['headers'].get('origin')
+    if origin in allowed_origins:
+        access_control_allow_origin = origin
+    else:
+        access_control_allow_origin = 'null'
+
+    try:
+        body = json.loads(event['body'])
+        usernames = body.get('usernames', [])
+    except (json.JSONDecodeError, KeyError):
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Invalid request body'}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization'
+            }
+        }
 
     if not usernames:
         return {
             'statusCode': 400,
             'body': json.dumps({'error': 'Usernames are required'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization'
+            }
         }
 
     keys = [{'username': username} for username in usernames]
@@ -41,5 +70,10 @@ def lambda_handler(event, context):
     return {
         'statusCode': 200,
         'body': json.dumps(converted_items),
-        'headers': {'Content-Type': 'application/json'}
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': access_control_allow_origin,
+            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization'
+        }
     }
