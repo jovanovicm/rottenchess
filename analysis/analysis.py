@@ -226,8 +226,20 @@ def analyze_moves(moves, engine, board):
             move = board.parse_san(move_san)
             board.push(move)
             log_print(move_san)
+        except chess.InvalidMoveError as e:
+            log_print(f"Invalid SAN move detected: {str(e)}, skipping this game.")
+            return None
+        except chess.IllegalMoveError as e:
+            log_print(f"Illegal move detected: {str(e)}, skipping this game.")
+            return None
+        except chess.AmbiguousMoveError as e:
+            log_print(f"Ambiguous move detected: {str(e)}, skipping this game.")
+            return None
+        except chess.MoveError as e:
+            log_print(f"General move error detected: {str(e)}, skipping this game.")
+            return None
         except Exception as e:
-            log_print(f"Error detected: {str(e)}, skipping this game.")
+            log_print(f"Unexpected error detected: {str(e)}, skipping this game.")
             return None
 
         info_after = engine.analyse(board, chess.engine.Limit(depth=20))
@@ -246,6 +258,7 @@ def analyze_moves(moves, engine, board):
             stats[player]['inaccuracies'] += 1
 
     return stats
+
 
 def process_message(message, engine, player_stats_table, processed_games_table, sqs):
     message_id = message[0]['MessageId']
