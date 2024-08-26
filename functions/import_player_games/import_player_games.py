@@ -16,8 +16,9 @@ def lambda_handler(event, context):
 
     # Chess Personalities + me and my bro
     chess_personalities = [
-        {'username': 'markoj000', 'display': 'username'}, # creator 1
-        {'username': 'brydog123', 'display': 'username'}, # creator 2
+        {'username': 'markoj000', 'display': 'username'}, # dev 1
+        {'username': 'uberdestroyer', 'display': 'username'}, # dev 1
+        {'username': 'brydog123', 'display': 'username'}, # dev 2
         {'username': 'gothamchess', 'display': 'name'},
         {'username': 'alexandrabotez', 'display': 'name'},
         {'username': 'supersecret12345', 'display': 'username'},
