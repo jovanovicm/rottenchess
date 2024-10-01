@@ -222,9 +222,8 @@ def analyze_moves(moves, engine, board):
         return 1 / (1 + math.exp(MULTIPLIER * cp))
 
     for i, move_san in enumerate(moves):
+        player = 'white' if i % 2 == 0 else 'black'
         try:
-            player = 'white' if i % 2 == 0 else 'black'
-
             # Analyze before the move
             info_before = engine.analyse(board, chess.engine.Limit(depth=20))
             score_before = info_before['score']
@@ -252,11 +251,8 @@ def analyze_moves(moves, engine, board):
                 stats[player]['inaccuracies'] += 1
 
         except (ValueError, chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, chess.MoveError) as e:
-            log_print(f"Move error detected: {str(e)}, skipping this game.")
-            return None
-        except Exception as e:
-            log_print(f"Unexpected error detected: {str(e)}, skipping this game.")
-            return None
+            log_print(f"Move error detected: {str(e)}, invalid move: {move_san}")
+            raise  # Re-raise the exception to be caught in process_message
 
     return stats
 
@@ -278,8 +274,10 @@ def process_message(message, engine, player_stats_table, processed_games_table, 
         month = f'm{end_time.month:02}'
         
         log_print(f"Processing game: {game['game_uuid']}")
-        game_stats = analyze_moves(moves, engine, board)
-        if game_stats is None:
+        try:
+            game_stats = analyze_moves(moves, engine, board)
+        except Exception as e:
+            log_print(f"Error analyzing game {game['game_uuid']}: {str(e)}")
             continue
 
         players = {'white': game['white'], 'black': game['black']}
