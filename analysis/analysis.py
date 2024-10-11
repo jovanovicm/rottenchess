@@ -250,9 +250,9 @@ def analyze_moves(moves, engine, board):
             elif win_prob_change >= 0.05:
                 stats[player]['inaccuracies'] += 1
 
-        except (ValueError, chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError, chess.MoveError) as e:
+        except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError) as e:
             log_print(f"Move error detected: {str(e)}, invalid move: {move_san}")
-            raise  # Re-raise the exception to be caught in process_message
+            raise
 
     return stats
 
@@ -274,6 +274,7 @@ def process_message(message, engine, player_stats_table, processed_games_table, 
         month = f'm{end_time.month:02}'
         
         log_print(f"Processing game: {game['game_uuid']}")
+        
         try:
             game_stats = analyze_moves(moves, engine, board)
         except Exception as e:
