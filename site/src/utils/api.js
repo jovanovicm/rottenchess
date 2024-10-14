@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback} from 'react';
 
-function useLeaderboard() {
+function useApi() {
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -91,4 +91,4 @@ function useLeaderboard() {
   return { leaderboardData, isLoading, updateLeaderboard };
 }
 
-export default useLeaderboard;
+export default useApi;
