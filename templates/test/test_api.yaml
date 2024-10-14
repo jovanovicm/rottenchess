@@ -247,16 +247,16 @@ Resources:
   Certificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: test-api.rottenchess.com
+      DomainName: test.rottenchess.com
       ValidationMethod: DNS
       DomainValidationOptions:
-        - DomainName: test-api.rottenchess.com
+        - DomainName: test.rottenchess.com
           HostedZoneId: Z09567002DFAQSHJR757S
 
   APIDomain:
     Type: AWS::ApiGateway::DomainName
     Properties:
-      DomainName: test-api.rottenchess.com
+      DomainName: test.rottenchess.com
       RegionalCertificateArn: !Ref Certificate
       EndpointConfiguration:
         Types:
@@ -273,7 +273,7 @@ Resources:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: Z09567002DFAQSHJR757S
-      Name: test-api.rottenchess.com
+      Name: test.rottenchess.com
       Type: A
       AliasTarget:
         DNSName: !GetAtt APIDomain.RegionalDomainName
