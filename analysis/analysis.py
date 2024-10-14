@@ -38,13 +38,19 @@ def shutdown():
     decrease_task_count(ECS_CLUSTER_NAME, ECS_SERVICE_NAME)
 
 def signal_handler(signum, frame):
-    global shutdown_flag
+    global shutdown_flag, message
 
-    sqs.change_message_visibility(
-            QueueUrl=QUEUE_URL,
-            ReceiptHandle=message[0]['ReceiptHandle'],
-            VisibilityTimeout=0
-        )
+    try:
+        if message and len(message) > 0:
+            sqs.change_message_visibility(
+                QueueUrl=QUEUE_URL,
+                ReceiptHandle=message[0]['ReceiptHandle'],
+                VisibilityTimeout=0
+            )
+    except IndexError:
+        log_print("Error: message list is empty during shutdown.")
+    except Exception as e:
+        log_print(f"Error during message visibility change: {str(e)}")
     
     shutdown()
     shutdown_flag = True
@@ -201,47 +207,52 @@ def fetch_message():
     message = response.get('Messages', [])
 
 def delete_message(receipt_handle, sqs):
-    sqs.delete_message(
-        QueueUrl=QUEUE_URL,
-        ReceiptHandle=receipt_handle
-    )
+    if message:    
+        sqs.delete_message(
+            QueueUrl=QUEUE_URL,
+            ReceiptHandle=receipt_handle
+        )
 
 def analyze_moves(moves, engine, board):
     stats = {'white': {'inaccuracies': 0, 'mistakes': 0, 'blunders': 0},
              'black': {'inaccuracies': 0, 'mistakes': 0, 'blunders': 0}}
-    
+
     def winning_chances(cp):
         MULTIPLIER = -0.00368208
         return 1 / (1 + math.exp(MULTIPLIER * cp))
 
     for i, move_san in enumerate(moves):
         player = 'white' if i % 2 == 0 else 'black'
-        info_before = engine.analyse(board, chess.engine.Limit(depth=20))
-        score_before = info_before['score']
-        cp_before = score_before.white().score(mate_score=10000) if player == 'white' else score_before.black().score(mate_score=10000)
-
         try:
+            # Analyze before the move
+            info_before = engine.analyse(board, chess.engine.Limit(depth=20))
+            score_before = info_before['score']
+            cp_before = score_before.white().score(mate_score=10000) if player == 'white' else score_before.black().score(mate_score=10000)
+
+            # Parse and apply the move
             move = board.parse_san(move_san)
             board.push(move)
             log_print(move_san)
-        except chess.IllegalMoveError:
-            log_print(f"Illegal move detected, skipping this game...")
-            return None
 
-        info_after = engine.analyse(board, chess.engine.Limit(depth=20))
-        score_after = info_after['score']
-        cp_after = int(score_after.white().score(mate_score=10000)) if player == 'white' else int(score_after.black().score(mate_score=10000))
+            # Analyze after the move
+            info_after = engine.analyse(board, chess.engine.Limit(depth=20))
+            score_after = info_after['score']
+            cp_after = int(score_after.white().score(mate_score=10000)) if player == 'white' else int(score_after.black().score(mate_score=10000))
 
-        wp_before = winning_chances(cp_before)
-        wp_after = winning_chances(cp_after)
-        win_prob_change = abs(wp_after - wp_before)
+            wp_before = winning_chances(cp_before)
+            wp_after = winning_chances(cp_after)
+            win_prob_change = abs(wp_after - wp_before)
 
-        if win_prob_change >= 0.2:
-            stats[player]['blunders'] += 1
-        elif win_prob_change >= 0.1:
-            stats[player]['mistakes'] += 1
-        elif win_prob_change >= 0.05:
-            stats[player]['inaccuracies'] += 1
+            if win_prob_change >= 0.2:
+                stats[player]['blunders'] += 1
+            elif win_prob_change >= 0.1:
+                stats[player]['mistakes'] += 1
+            elif win_prob_change >= 0.05:
+                stats[player]['inaccuracies'] += 1
+
+        except (chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError) as e:
+            log_print(f"Move error detected: {str(e)}, invalid move: {move_san}")
+            raise
 
     return stats
 
@@ -263,8 +274,11 @@ def process_message(message, engine, player_stats_table, processed_games_table, 
         month = f'm{end_time.month:02}'
         
         log_print(f"Processing game: {game['game_uuid']}")
-        game_stats = analyze_moves(moves, engine, board)
-        if game_stats is None:
+        
+        try:
+            game_stats = analyze_moves(moves, engine, board)
+        except Exception as e:
+            log_print(f"Error analyzing game {game['game_uuid']}: {str(e)}")
             continue
 
         players = {'white': game['white'], 'black': game['black']}

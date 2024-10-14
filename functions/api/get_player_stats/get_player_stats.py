@@ -18,21 +18,43 @@ def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(PLAYER_STATS_TABLE)
 
+    allowed_origins = [
+        'https://rottenchess.com',
+        'https://www.rottenchess.com',
+        'http://localhost:3000'
+    ]
+
+    origin = event['headers'].get('origin')
+    if origin in allowed_origins:
+        access_control_allow_origin = origin
+    else:
+        access_control_allow_origin = 'null'
+
     path_params = event.get('pathParameters', {})
     username = path_params.get('username')
 
     if username == 'batch':
         return {
-        'statusCode': 405,
-        'body': json.dumps({'error': 'Method not allowed'}),
-        'headers': {'Content-Type': 'application/json'}
+            'statusCode': 405,
+            'body': json.dumps({'error': 'Method not allowed'}),
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+            }
         }
     
     if not username:
         return {
             'statusCode': 400,
             'body': json.dumps({'error': 'Username is required'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+            }
         }
 
     response = table.get_item(Key={'username': username})
@@ -42,12 +64,22 @@ def lambda_handler(event, context):
         return {
             'statusCode': 200,
             'body': json.dumps(item),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+            }
         }
     
     else:
         return {
             'statusCode': 404,
             'body': json.dumps({'error': 'Player not found'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+            }
         }

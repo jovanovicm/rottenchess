@@ -18,6 +18,18 @@ def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
     leaderboard_table = dynamodb.Table(LEADERBOARD_HISTORY_TABLE)
 
+    allowed_origins = [
+        'https://rottenchess.com',
+        'https://www.rottenchess.com',
+        'http://localhost:3000'
+    ]
+
+    origin = event['headers'].get('origin')
+    if origin in allowed_origins:
+        access_control_allow_origin = origin
+    else:
+        access_control_allow_origin = 'null'
+
     query_params = event.get('queryStringParameters', {})
     year = query_params.get('year')
     month = query_params.get('month')
@@ -26,14 +38,24 @@ def lambda_handler(event, context):
         return {
             'statusCode': 400,
             'body': json.dumps({'message': 'Missing query parameter: year'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+            }
         }
     
     if not month:
         return {
             'statusCode': 400,
             'body': json.dumps({'message': 'Missing query parameter: month'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+            }
         }
 
     date = f"{year}/{month}"
@@ -47,12 +69,22 @@ def lambda_handler(event, context):
         return {
             'statusCode': 200,
             'body': json.dumps(item),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+            }
         }
     
     else:
         return {
             'statusCode': 404,
             'body': json.dumps({'message': 'No leaderboard data found for the specified date'}),
-            'headers': {'Content-Type': 'application/json'}
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': access_control_allow_origin,
+                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+            }
         }

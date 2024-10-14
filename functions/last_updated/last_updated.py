@@ -1,13 +1,15 @@
 import boto3
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
+
+EST = timezone(timedelta(hours=-5))
 
 def lambda_handler(event, context):
     METADATA_TABLE = os.getenv('METADATA_TABLE')
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(METADATA_TABLE)
     
-    current_datetime = datetime.now().strftime("%B %d, %Y")
+    current_datetime = datetime.now(EST).strftime("%B %d, %Y")
     
     item = {
         'metadata_id': 'last_updated',
