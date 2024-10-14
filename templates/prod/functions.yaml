@@ -226,7 +226,7 @@ Resources:
       Runtime: python3.12
       FunctionName: rotten-chess-GetPlayerStats
       Timeout: 60 
-      MemorySize: 128  
+      MemorySize: 512  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -242,7 +242,7 @@ Resources:
       Runtime: python3.12
       FunctionName: rotten-chess-BatchGetPlayerStats
       Timeout: 60 
-      MemorySize: 128  
+      MemorySize: 512  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -258,7 +258,7 @@ Resources:
       Runtime: python3.12
       FunctionName: rotten-chess-GetPlayers
       Timeout: 60 
-      MemorySize: 128  
+      MemorySize: 512  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -274,7 +274,7 @@ Resources:
       Runtime: python3.12
       FunctionName: rotten-chess-GetLeaderboardHistory
       Timeout: 60 
-      MemorySize: 128  
+      MemorySize: 512  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -290,7 +290,7 @@ Resources:
       Runtime: python3.12
       FunctionName: rotten-chess-GetLastUpdated
       Timeout: 30
-      MemorySize: 128  
+      MemorySize: 512  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:

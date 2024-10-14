@@ -20,5 +20,17 @@ Resources:
         TrackedPlayersTable: !GetAtt TestInfrastructureStack.Outputs.TrackedPlayersTable
         PlayerStatsTable: !GetAtt TestInfrastructureStack.Outputs.PlayerStatsTable
         ProcessedGamesTable: !GetAtt TestInfrastructureStack.Outputs.ProcessedGamesTable
+        LeaderboardHistoryTable: !GetAtt TestInfrastructureStack.Outputs.LeaderboardHistoryTable
         MetadataTable: !GetAtt TestInfrastructureStack.Outputs.MetadataTable
         GameQueue: !GetAtt TestInfrastructureStack.Outputs.GameQueue
+  
+  TestAPIStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./test_api.yaml
+      Parameters:
+        GetPlayerStatsFunction: !GetAtt TestFunctionsStack.Outputs.GetPlayerStatsFunction
+        BatchGetPlayerStatsFunction: !GetAtt TestFunctionsStack.Outputs.BatchGetPlayerStatsFunction
+        GetPlayersFunction: !GetAtt TestFunctionsStack.Outputs.GetPlayersFunction
+        GetLeaderboardHistoryFunction: !GetAtt TestFunctionsStack.Outputs.GetLeaderboardHistoryFunction
+        GetLastUpdatedFunction: !GetAtt TestFunctionsStack.Outputs.GetLastUpdatedFunction

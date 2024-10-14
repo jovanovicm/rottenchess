@@ -16,8 +16,9 @@ def lambda_handler(event, context):
 
     # Chess Personalities + me and my bro
     chess_personalities = [
-        {'username': 'markoj000', 'display': 'username'}, # creator 1
-        {'username': 'brydog123', 'display': 'username'}, # creator 2
+        {'username': 'markoj000', 'display': 'username'}, # dev 1
+        {'username': 'uberdestroyer', 'display': 'username'}, # dev 1
+        {'username': 'brydog123', 'display': 'username'}, # dev 2
         {'username': 'gothamchess', 'display': 'name'},
         {'username': 'alexandrabotez', 'display': 'name'},
         {'username': 'supersecret12345', 'display': 'username'},
@@ -277,7 +278,8 @@ def get_games(USER_AGENT_EMAIL, MIN_END_TIME, MAX_END_TIME, TIME_CLASS, username
                     # Ensure all required fields are present
                     if all(key in game for key in ['end_time', 'time_class', 'pgn']) and \
                        MAX_END_TIME >= game['end_time'] >= MIN_END_TIME and \
-                       game['time_class'] == TIME_CLASS:
+                       game['time_class'] == TIME_CLASS and \
+                       game['rules'] == 'chess':
                         game_info = {
                             "game_uuid": game["uuid"],
                             "white": game["white"],

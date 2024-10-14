@@ -35,6 +35,14 @@ Resources:
         Name: message_id
         Type: String
   
+  LeaderboardHistoryTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-LeaderboardHistory
+      PrimaryKey:
+        Name: date
+        Type: String
+
   MetadataTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
@@ -244,6 +252,10 @@ Outputs:
   ProcessedGamesTable:
     Description: ARN of the Processed Games Table
     Value: !Ref ProcessedGamesTable
+  
+  LeaderboardHistoryTable:
+    Description: ARN of the Leaderboard History Table
+    Value: !Ref LeaderboardHistoryTable
   
   MetadataTable:
     Description: ARN of the Metadata Table
