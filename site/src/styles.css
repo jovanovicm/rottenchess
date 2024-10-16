@@ -7,21 +7,49 @@ body {
 }
 
 .site-header {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
     margin-bottom: 30px;
+    padding-left: 0px;
 }
 
-.site-header h1 {
+.site-logo {
+    width: 120px;
+    height: auto;
+    margin-right: 0px;
+}
+
+.site-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.site-title h1 {
     font-size: 3.5em;
     color: #112016;
     margin: 0.1em 0;
+    font-family: 'Impact', sans-serif;
 }
 
-.site-header p {
+.site-title p {
     font-size: 1.1em;
     color: #555;
-    max-width: 80%;
-    margin: 0 auto;
+    margin: 0;
+}
+
+.last-update {
+    font-size: 11px;
+    color: #555;
+    margin-top: 5px;
+    margin-left: 15px;
+    margin-bottom: 5px;
+}
+
+p {
+    margin: 0;
 }
 
 .filter-bar {
@@ -29,6 +57,20 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    background-color: #fff;
+    border-radius: 20px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: nowrap;
+    gap: 10px;
+}
+
+.left-group {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    flex: 1;
+    align-items: center;
 }
 
 .left-filters, .right-filters {
@@ -36,30 +78,40 @@ body {
     align-items: center;
 }
 
-.right-filters select {
-    margin-left: 10px;
+.left-filters .pill {
+    margin-right: 10px;
+}
+
+.left-filters .pill:last-child {
+    margin-right: 0;
 }
 
 .pill, select, .search-box {
-    padding: 10px 20px;
-    border: 2px solid #3A4F41;
+    padding: 5px 20px;
+    border: 2px solid #324137;
     border-radius: 20px;
     background-color: white;
     font-size: 0.9rem;
     font-weight: 700;
     color: #3A4F41;
     cursor: pointer;
-    margin-right: 5px;
     transition: background-color 0.3s, color 0.3s;
+    white-space: nowrap;
 }
 
-.pill:hover, .pill.active {
-    background-color: #2E4236;
-    color: white;
+.pill {
+    flex: 0 1 auto;
+    min-width: 100px;
+    box-sizing: border-box;
 }
 
 .search-box {
     width: 200px;
+}
+
+.pill:hover, .pill.active {
+    background-color: #324137;
+    color: white;
 }
 
 .search-box:focus, .search-box:hover {
@@ -77,27 +129,200 @@ select {
     background-position-y: 50%;
 }
 
+.right-filters select {
+    margin-left: 10px;
+    flex: 1 1 0;
+}
+
+@media only screen and (min-width: 1218px) {
+    .leaderboard th .short-text,
+    .leaderboard th .icon-only {
+        display: none;
+    }
+
+    .leaderboard th .full-text,
+    .leaderboard th .text-with-icon {
+        display: inline-block;
+    }
+  }
+
+@media only screen and (max-width: 1217px) {
+    .leaderboard th .full-text,
+    .leaderboard th .text-with-icon {
+        display: none;
+    }
+
+    .leaderboard th .short-text,
+    .leaderboard th .icon-only {
+        display: inline-block;
+    }
+
+    .leaderboard th {
+        padding-right: 25px;
+    }
+}
+
+@media only screen and (max-width: 1045px) {
+    .site-header {
+        margin-bottom: 20px;
+    }
+
+    .site-logo {
+        width: 80px;
+    }
+
+    .site-title h1 {
+        font-size: 2.5em;
+    }
+
+    .site-title p {
+        font-size: 1em;
+    }
+
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .left-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .left-filters {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .left-filters .pill {
+        flex: 1 0 auto;
+        min-width: 0;
+    }
+
+    .left-filters .pill:last-child {
+        margin-right: 0;
+    }
+
+    .search-box {
+        flex: 1 0 auto;
+        width: 100%;
+        padding: 5px 20px;
+    }
+
+    .right-group {
+        width: 100%;
+    }
+
+    .right-filters {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .right-filters select {
+        flex: 1 1 0;
+    }
+
+    .right-filters select:first-child {
+        margin-left: 0;
+    }
+
+    .leaderboard th .full-text,
+    .leaderboard th .text-with-icon {
+      display: none;
+    }
+  
+    .leaderboard th .short-text,
+    .leaderboard th .icon-only {
+      display: inline-block;
+    }
+
+    .leaderboard th {
+        padding-right: 30px;
+    }
+    
+    .sort-arrows {
+        right: 2px;
+    }
+  }
+
+@media only screen and (max-width: 640px) {
+    .site-header {
+        margin-bottom: 15px;
+    }
+
+    .site-logo {
+        width: 60px;
+    }
+
+    .site-title h1 {
+        font-size: 2em;
+    }
+
+    .site-title p {
+        font-size: 0.9em;
+    }
+    
+    .left-filters {
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .left-filters .pill, .search-box {
+        width: 100%;
+        margin-bottom: 5px;
+        padding: 5px 20px;
+    }
+
+    .right-filters {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .right-filters select {
+        flex: 1 1 0;
+    }
+
+    .right-filters select:first-child {
+        margin-left: 0;
+    }
+}
+
 .leaderboard {
     width: 100%;
     border-collapse: collapse;
-    border-radius: 15px;
+    border-radius: 10px;
     overflow: hidden;
 }
 
 .leaderboard th, .leaderboard td {
-    padding: 10px;
+    padding: 6px;
     text-align: left;
     border-bottom: 1px solid #ddd;
 }
 
 .leaderboard th {
-    background-color: #3A4F41;
+    background-color: #324137;
     color: white;
     font-weight: bold;
     cursor: pointer;
     position: relative;
-    padding: 10px;
+    padding: 7px;
     text-align: left;
+}
+
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.th-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 25px;
 }
 
 .leaderboard tr:last-child td {
@@ -121,6 +346,7 @@ select {
     width: 20px;
     height: auto;
     vertical-align: middle;
+    margin-left: 10px;
 }
 
 .icon {
@@ -130,16 +356,17 @@ select {
 }
 
 .sort-arrows {
-    display: inline-block;
+    display: flex;
+    flex-direction: column;
     position: absolute;
     right: 5px;
     top: 50%;
     transform: translateY(-50%);
     height: 20px;
+    width: 15px;
 }
 
 .sort-arrow {
-    display: block;
     width: 12px;
     height: 50%;
     opacity: 0.3;
@@ -149,6 +376,10 @@ select {
     opacity: 1;
 }
 
+.highlight-personality {
+    background-color: #ededf5;
+}
+
 .leaderboard-chess-title {
     background-color: #7c2929;
     border-radius: 0.3rem;
@@ -156,7 +387,19 @@ select {
     font-size: 1rem;
     font-weight: 600;
     line-height: 1;
-    padding: 0.2rem 0.3rem;
+    padding: 0.1rem 0.3rem;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.custom-title {
+    background-color: #ffffff;
+    color: rgb(180, 180, 180);
+    border-radius: 0.3rem;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1;
+    padding: 0.1rem 0.3rem;
     display: inline-block;
     margin-right: 5px;
 }
