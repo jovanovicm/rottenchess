@@ -1,10 +1,10 @@
-import { useState, useCallback} from 'react';
+import { useState, useCallback } from 'react';
 
 function useApi() {
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [leaderboardHistory, setLeaderboardHistory] = useState(null);
 
-  // Fetch the list of all players
   const fetchPlayersList = useCallback(async () => {
     try {
       const response = await fetch('https://api.rottenchess.com/players?list=true');
@@ -19,7 +19,6 @@ function useApi() {
     }
   }, []);
 
-  // Fetch stats for a batch of usernames
   const fetchPlayersBatch = useCallback(async (usernames) => {
     try {
       const usernamesParam = usernames.join(',');
@@ -31,7 +30,6 @@ function useApi() {
       }
       const data = await response.json();
 
-      // Ensure that data is an array
       if (!Array.isArray(data)) {
         throw new Error('Invalid data format received from server');
       }
@@ -43,25 +41,76 @@ function useApi() {
     }
   }, []);
 
-  // Update the leaderboard data
+  const fetchLeaderboardHistory = useCallback(async (year, month) => {
+    try {
+      const response = await fetch(`https://api.rottenchess.com/leaderboard?year=${year}&month=${month}`);
+      if (!response.ok) {
+        // If the response is 404, it means there's no historical data for this month
+        if (response.status === 404) {
+          console.warn(`No leaderboard history found for ${year}/${month}`);
+          setLeaderboardHistory(null);
+          return null;
+        } else {
+          throw new Error('Network response was not ok');
+        }
+      }
+      const data = await response.json();
+      setLeaderboardHistory(data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching leaderboard history:', error);
+      return null;
+    }
+  }, []);
+
   const updateLeaderboard = useCallback(async (year, month) => {
     setIsLoading(true);
+
+    const history = await fetchLeaderboardHistory(year, month);
+
+    let usernamesToFetch = [];
+    let leaderboardPlayersSet = new Set();
+    let personalityPlayersSet = new Set();
+
+    // Fetch players list to get personality players
     const playersList = await fetchPlayersList();
     if (!playersList) {
       console.error('Failed to fetch players list');
       setIsLoading(false);
       return;
     }
+    if (playersList.personality_players) {
+      personalityPlayersSet = new Set(playersList.personality_players);
+    }
 
-    const allPlayers = [
-      ...playersList.leaderboard_players.active,
-      ...playersList.personality_players,
-    ];
+    if (history && history.players) {
+      // Use usernames from the historical data
+      usernamesToFetch = Object.keys(history.players);
 
-    // Split the usernames into batches
+      // Exclude personality players from leaderboardPlayersSet
+      const leaderboardUsernames = usernamesToFetch.filter(
+        (username) => !personalityPlayersSet.has(username)
+      );
+      leaderboardPlayersSet = new Set(leaderboardUsernames);
+
+      // Include personality players in usernamesToFetch
+      usernamesToFetch = usernamesToFetch.concat(playersList.personality_players);
+    } else {
+      // Fallback to current players list
+      usernamesToFetch = [
+        ...playersList.leaderboard_players.active,
+        ...playersList.personality_players,
+      ];
+      leaderboardPlayersSet = new Set(playersList.leaderboard_players.active);
+    }
+
+    // Remove duplicates
+    usernamesToFetch = [...new Set(usernamesToFetch)];
+
+    // Fetch player data in batches
     const batches = [];
-    for (let i = 0; i < allPlayers.length; i += 50) {
-      batches.push(allPlayers.slice(i, i + 50));
+    for (let i = 0; i < usernamesToFetch.length; i += 50) {
+      batches.push(usernamesToFetch.slice(i, i + 50));
     }
 
     let allPlayerData = [];
@@ -74,7 +123,7 @@ function useApi() {
       }
     }
 
-    // Process the player data
+    // Process data
     const processedData = allPlayerData.map((player) => {
       let stats = {};
       let totalGames = 0;
@@ -89,18 +138,34 @@ function useApi() {
           player.game_stats?.[`y${year}`]?.[`m${month}`]?.total_games || 0;
       }
 
+      // Handle historical data
+      let historicalData = {};
+      if (history && history.players && history.players[player.username]) {
+        historicalData = history.players[player.username];
+      }
+
+      // Set is_leaderboard_player based on historical data or current data
+      let isLeaderboardPlayer = leaderboardPlayersSet.has(player.username);
+
+      // Set is_personality_player based on personalityPlayersSet
+      let isPersonalityPlayer = personalityPlayersSet.has(player.username);
+
       return {
         ...player,
         stats,
         totalGames,
+        historicalRank: historicalData.player_rank,
+        historicalRating: historicalData.rating,
+        is_leaderboard_player: isLeaderboardPlayer,
+        is_personality_player: isPersonalityPlayer,
       };
     });
 
     setLeaderboardData(processedData);
     setIsLoading(false);
-  }, [fetchPlayersList, fetchPlayersBatch]);
+  }, [fetchPlayersList, fetchPlayersBatch, fetchLeaderboardHistory]);
 
-  return { leaderboardData, isLoading, updateLeaderboard };
+  return { leaderboardData, isLoading, updateLeaderboard, leaderboardHistory };
 }
 
 export default useApi;
