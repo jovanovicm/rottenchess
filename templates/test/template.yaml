@@ -30,7 +30,6 @@ Resources:
       TemplateURL: ./test_api.yaml
       Parameters:
         GetPlayerStatsFunction: !GetAtt TestFunctionsStack.Outputs.GetPlayerStatsFunction
-        BatchGetPlayerStatsFunction: !GetAtt TestFunctionsStack.Outputs.BatchGetPlayerStatsFunction
         GetPlayersFunction: !GetAtt TestFunctionsStack.Outputs.GetPlayersFunction
         GetLeaderboardHistoryFunction: !GetAtt TestFunctionsStack.Outputs.GetLeaderboardHistoryFunction
         GetLastUpdatedFunction: !GetAtt TestFunctionsStack.Outputs.GetLastUpdatedFunction
