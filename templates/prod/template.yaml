@@ -30,7 +30,6 @@ Resources:
       TemplateURL: ./api.yaml
       Parameters:
         GetPlayerStatsFunction: !GetAtt FunctionsStack.Outputs.GetPlayerStatsFunction
-        BatchGetPlayerStatsFunction: !GetAtt FunctionsStack.Outputs.BatchGetPlayerStatsFunction
         GetPlayersFunction: !GetAtt FunctionsStack.Outputs.GetPlayersFunction
         GetLeaderboardHistoryFunction: !GetAtt FunctionsStack.Outputs.GetLeaderboardHistoryFunction
         GetLastUpdatedFunction: !GetAtt FunctionsStack.Outputs.GetLastUpdatedFunction

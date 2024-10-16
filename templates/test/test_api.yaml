@@ -4,8 +4,6 @@ Description: Test Rotten Chess REST API Resources
 Parameters:
   GetPlayerStatsFunction:
     Type: String
-  BatchGetPlayerStatsFunction:
-    Type: String
   GetPlayersFunction:
     Type: String
   GetLeaderboardHistoryFunction:
@@ -73,12 +71,19 @@ Resources:
       ParentId: !Ref GetPlayersResource
       PathPart: '{username}'
   
-  BatchPlayerStatsResource:
+  InfoResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref RottenChessAPI
-      ParentId: !Ref GetPlayersResource
-      PathPart: batch
+      ParentId: !GetAtt RottenChessAPI.RootResourceId
+      PathPart: info
+
+  LastUpdateResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RottenChessAPI
+      ParentId: !Ref InfoResource
+      PathPart: lastupdate
 
   GetPlayerStatsMethod:
     Type: AWS::ApiGateway::Method
@@ -91,44 +96,6 @@ Resources:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPlayerStatsFunction}/invocations
-
-  BatchGetPlayerStatsMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref RottenChessAPI
-      ResourceId: !Ref BatchPlayerStatsResource
-      HttpMethod: POST
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BatchGetPlayerStatsFunction}/invocations
-      MethodResponses:
-      - StatusCode: 200
-        ResponseParameters:
-          method.response.header.Access-Control-Allow-Origin: true
-  
-  BatchPlayerStatsOptionsMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref RottenChessAPI
-      ResourceId: !Ref BatchPlayerStatsResource
-      HttpMethod: OPTIONS
-      AuthorizationType: NONE
-      Integration:
-        Type: MOCK
-        IntegrationResponses:
-          - StatusCode: 200
-            ResponseParameters:
-              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
-              method.response.header.Access-Control-Allow-Origin: "'*'"
-      MethodResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: true
-            method.response.header.Access-Control-Allow-Methods: true
-            method.response.header.Access-Control-Allow-Origin: true
 
   GetPlayersMethod:
     Type: AWS::ApiGateway::Method
@@ -161,20 +128,6 @@ Resources:
         IntegrationHttpMethod: POST
         Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetLeaderboardHistoryFunction}/invocations
 
-  InfoResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      RestApiId: !Ref RottenChessAPI
-      ParentId: !GetAtt RottenChessAPI.RootResourceId
-      PathPart: info
-
-  LastUpdateResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      RestApiId: !Ref RottenChessAPI
-      ParentId: !Ref InfoResource
-      PathPart: lastupdate
-
   GetLastUpdatedMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -194,14 +147,6 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/*/GET/players/*
-
-  LambdaInvokePermissionBatchGetPlayerStats:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref BatchGetPlayerStatsFunction
-      Action: lambda:InvokeFunction
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RottenChessAPI}/*/POST/players/batch
 
   LambdaInvokePermissionGetPlayers:
     Type: AWS::Lambda::Permission
@@ -231,8 +176,6 @@ Resources:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
       - GetPlayerStatsMethod
-      - BatchGetPlayerStatsMethod
-      - BatchPlayerStatsOptionsMethod
       - GetPlayersMethod
       - GetLeaderboardHistoryMethod
       - GetLastUpdatedMethod

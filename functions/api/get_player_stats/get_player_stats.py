@@ -14,72 +14,40 @@ def convert_decimals(item):
         return item
 
 def lambda_handler(event, context):
+    print("Received event:", json.dumps(event))
+
     PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(PLAYER_STATS_TABLE)
 
-    allowed_origins = [
-        'https://rottenchess.com',
-        'https://www.rottenchess.com',
-        'http://localhost:3000'
-    ]
+    headers = {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    }
 
-    origin = event['headers'].get('origin')
-    if origin in allowed_origins:
-        access_control_allow_origin = origin
-    else:
-        access_control_allow_origin = 'null'
-
-    path_params = event.get('pathParameters', {})
+    # Extract path parameters
+    path_params = event.get('pathParameters') or {}
     username = path_params.get('username')
 
-    if username == 'batch':
-        return {
-            'statusCode': 405,
-            'body': json.dumps({'error': 'Method not allowed'}),
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': access_control_allow_origin,
-                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
+    if username:
+        # Handle single player retrieval
+        response = table.get_item(Key={'username': username})
+        if 'Item' in response:
+            item = convert_decimals(response['Item'])
+            return {
+                'statusCode': 200,
+                'body': json.dumps(item),
+                'headers': headers
             }
-        }
-    
-    if not username:
+        else:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({'error': 'Player not found'}),
+                'headers': headers
+            }
+    else:
         return {
             'statusCode': 400,
             'body': json.dumps({'error': 'Username is required'}),
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': access_control_allow_origin,
-                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
-            }
-        }
-
-    response = table.get_item(Key={'username': username})
-
-    if 'Item' in response:
-        item = convert_decimals(response['Item'])
-        return {
-            'statusCode': 200,
-            'body': json.dumps(item),
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': access_control_allow_origin,
-                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
-            }
-        }
-    
-    else:
-        return {
-            'statusCode': 404,
-            'body': json.dumps({'error': 'Player not found'}),
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': access_control_allow_origin,
-                'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date'
-            }
+            'headers': headers
         }
