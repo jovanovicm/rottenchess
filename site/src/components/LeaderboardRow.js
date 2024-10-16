@@ -25,10 +25,14 @@ function LeaderboardRow({ player, currentFilter }) {
   const customTitle = customTitles[username];
   const normalTitle = player.player_title;
 
+  // Use historical data when available
+  const displayRank = player.historicalRank !== undefined ? player.historicalRank : player.player_rank;
+  const displayRating = player.historicalRating !== undefined ? player.historicalRating : player.rating;
+
   return (
     <tr data-category={player.is_leaderboard_player ? 'top50' : 'personality'}
-        className={player.is_leaderboard_player ? '' : 'highlight-personality'}>
-      {currentFilter === 'top50' && <td>{player.player_rank}</td>}
+        className={player.is_personality_player ? 'highlight-personality' : ''}>
+      {currentFilter === 'top50' && <td>{displayRank}</td>}
       <td>
         {customTitle && 
           <div className="custom-title">
@@ -45,7 +49,7 @@ function LeaderboardRow({ player, currentFilter }) {
         </a>
         <div className={`country-flag ${getCountryCodeClass(player.country)}`}></div>
       </td>
-      <td className="rating-column">{player.rating}</td>
+      <td className="rating-column">{displayRating}</td>
       <td><strong>{rpg.toFixed(2)}</strong></td>
       <td>{totalGames || 0}</td>
       <td>{stats.blunders || 0}</td>
