@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 import time
 
 def lambda_handler(event, context):
-    USER_AGENT_EMAIL = get_secret()
+    USER_AGENT_EMAIL = get_parameter()
     TRACKED_PLAYERS_TABLE = os.getenv('TRACKED_PLAYERS_TABLE')
     PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
     GAME_IMPORTS_TABLE = os.getenv('GAME_IMPORTS_TABLE')
@@ -17,7 +17,7 @@ def lambda_handler(event, context):
     # Chess Personalities + me and my bro
     chess_personalities = [
         {'username': 'markoj000', 'display': 'username'}, # dev 1
-        {'username': 'uberdestroyer', 'display': 'username'}, # dev 1
+        {'username': 'uberdestroyer', 'display': 'username'}, # my drunk chess account
         {'username': 'brydog123', 'display': 'username'}, # dev 2
         {'username': 'gothamchess', 'display': 'name'},
         {'username': 'alexandrabotez', 'display': 'name'},
@@ -55,18 +55,20 @@ def lambda_handler(event, context):
         'statusCode': 200
     }
 
-def get_secret():
-    SECRET_ARN = os.getenv('SECRET_ARN')
-    AWS_REGION = os.getenv('AWS_REGION')
+def get_parameter():
+    PARAMETER_NAME = os.getenv('PARAMETER_NAME')
+    AWS_REGION = os.getenv('AWS_REGION') 
 
     session = boto3.session.Session()
-    client = session.client(service_name='secretsmanager', region_name=AWS_REGION)
-    response = client.get_secret_value(SecretId=SECRET_ARN)
+    client = session.client(service_name='ssm', region_name=AWS_REGION)
 
-    secret_dict = json.loads(response['SecretString'])
-    secret = secret_dict['USER_AGENT_EMAIL']
+    response = client.get_parameter(
+        Name=PARAMETER_NAME,
+        WithDecryption=False
+    )
 
-    return secret
+    parameter_value = response['Parameter']['Value']
+    return parameter_value
 
 def update_player_dbs(TRACKED_PLAYERS_TABLE, PLAYER_STATS_TABLE, leaderboard_players, chess_personalities, today, remove_period):
     dynamodb = boto3.resource('dynamodb')
