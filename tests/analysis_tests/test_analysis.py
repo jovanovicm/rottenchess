@@ -10,7 +10,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from analysis.analysis import process_message, update_player_stats, analyze_moves
+from container.analysis import process_message, update_player_stats, analyze_moves
 
 @pytest.fixture(scope="module")
 def chess_engine():
