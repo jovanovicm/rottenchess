@@ -15,33 +15,21 @@ Blitz was selected as it is the most popular chess format on the website among t
 ### Importing Games
 RottenChess tracks games using the Chess.com API. 
 
-The list of players being tracked changes dynamically with how the leaderboard on Chess.com changes. Players who leave the leaderboard will have their games tracked for an additional month to have continuity in their game stats if they happen to return to the leaderboard shortly after. They will be removed from the list of tracked players after a month outside of the leaderboard to limit the amount of individuals being tracked.
+The list of players being tracked changes dynamically with how the leaderboard on Chess.com changes. Players who leave the Top 50 leaderboard will have their games tracked for an additional month to have continuity in their game stats if they happen to return to the leaderboard shortly after. They will be removed from the list of tracked players after a month outside of the leaderboard to limit the amount of individuals being tracked.
 
 RottenChess specifically tracks:
 - **Top 50 Blitz Players**: Players ranked in the top 50 in the Blitz category
 - **Tracked Personalities and Players**: Curated list of chess personalities and other players of interest ([like myself](https://www.chess.com/member/markoj000))
 
-### Processing Games
-Once the Game Imports Table is populated, the Simple Queue Service (SQS) is utilized to gather games in batches to prepare games for processing.
+### Analysis
+The **Stockfish 16.1 Chess Engine** is used to analyse the games.
 
-The Elastic Container Service (ECS) is used to deploy multiple Docker Containers. Each Container has:
-- **Stockfish 16.1 Chess Engine:** A very strong chess engine
-- **analysis.py:** A script utilizing the engine to import and analyze games to gather the number of blunders, mistakes, and inaccuracies
-
-#### Analysis
-Docker Containers grab messages from the SQS queue and run the game moves through the script located on the image.
-The number of containers deploys one-to-one with the number of messages within the SQS Queue, ensuring that the compute infrastructure scales with the number of games played on any day.
-Results are sent to the Player Stats Table.
-
----
-#### Win Percentage Calculation
 To determine the move classifications, first a win percentage calculation must happen. Win percentage represents the chances a player has to win a game in a given position. Stockfish analyzes each position in a game at a <ins>Depth of 20</ins> to determine the centipawn value. The centipawn value is used in the following function, which is [used by Lichess](https://lichess.org/page/accuracy), to calculate the win percentage for every position.
 ```
 Win% = 50 + 50 * (2 / (1 + exp(-0.00368208 * centipawns)) - 1)
 ```
 > Win Percentage is based on Player ELO. Chess.com uses a closed source dyanmic system called ClassificationV2. Lichess uses an open source static system which uses the formula above which is calculated using games played by 2300 ELO players as a benchmark to determine winning chances.
 
----
 #### Move Classification
 By referencing the change in percentage value between positions, we can determine what the move leading to a position is classified as. The following bounds, which are the same bounds [used by Chess.com](https://support.chess.com/en/articles/8572705-how-are-moves-classified-what-is-a-blunder-or-brilliant-and-etc), are used for move classification:
 
