@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Production Rotten Chess Functions
+Description: Test Rotten Chess Functions
 
 Parameters:
   VPC:
@@ -50,29 +50,7 @@ Resources:
                   - logs:PutLogEvents
                   - ssm:GetParameter
                 Resource: "*"
-  
-  StepFunctionsExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: states.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: StepFunctionPermissions
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: 
-                  - lambda:InvokeFunction
-                  - logs:*
-                Resource: "*"
 
-  # Infrastructure-based Functions
   ImportPlayerGamesLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -91,7 +69,7 @@ Resources:
       CodeUri: ../../functions/import_player_games/
       Handler: import_player_games.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-ImportPlayerGames
+      FunctionName: test-rotten-chess-ImportPlayerGames
       Timeout: 300
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
@@ -102,14 +80,14 @@ Resources:
           PARAMETER_NAME: user-agent-email
       Architectures:
         - x86_64
-  
+
   EnqueueDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/enqueue_dynamodb_items/
       Handler: enqueue_dynamodb_items.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-EnqueueDynamoDBItems
+      FunctionName: test-rotten-chess-EnqueueDynamoDBItems
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -119,14 +97,14 @@ Resources:
           SQS_QUEUE_URL: !Ref GameQueue
       Architectures:
         - x86_64
-    
+
   PrivateLinkProvisionFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/provision_privatelinks/
       Handler: provision_privatelinks.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-PrivateLinkProvision
+      FunctionName: test-rotten-chess-PrivateLinkProvision
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -144,20 +122,20 @@ Resources:
       CodeUri: ../../functions/deprovision_privatelinks/
       Handler: deprovision_privatelinks.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-PrivateLinkDeprovision
+      FunctionName: test-rotten-chess-PrivateLinkDeprovision
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Architectures:
         - x86_64
-  
+
   CheckQueueFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/check_queue/
       Handler: check_queue.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-CheckQueue
+      FunctionName: test-rotten-chess-CheckQueue
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -166,14 +144,14 @@ Resources:
           SQS_QUEUE_URL: !Ref GameQueue
       Architectures:
         - x86_64
-  
+
   DeleteDynamoDBItemsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/delete_dynamodb_items/
       Handler: delete_dynamodb_items.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-DeleteDynamoDBItems
+      FunctionName: test-rotten-chess-DeleteDynamoDBItems
       Timeout: 120 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -183,14 +161,14 @@ Resources:
           PROCESSED_GAMES_TABLE: !Ref ProcessedGamesTable
       Architectures:
         - x86_64
-  
+
   UpdateLeaderboardHistoryFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/update_leaderboard_history/
       Handler: update_leaderboard_history.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-UpdateLeaderboardHistory
+      FunctionName: test-rotten-chess-UpdateLeaderboardHistory
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -200,14 +178,14 @@ Resources:
           LEADERBOARD_HISTORY_TABLE: !Ref LeaderboardHistoryTable
       Architectures:
         - x86_64
-  
+
   LastUpdatedFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/last_updated/
       Handler: last_updated.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-LastUpdated
+      FunctionName: test-rotten-chess-LastUpdated
       Timeout: 30 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -216,17 +194,16 @@ Resources:
           METADATA_TABLE: !Ref MetadataTable
       Architectures:
         - x86_64
-  
-  # API Functions
+
   GetPlayerStatsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/api/get_player_stats/
       Handler: get_player_stats.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-GetPlayerStats
+      FunctionName: test-rotten-chess-GetPlayerStats
       Timeout: 60 
-      MemorySize: 512  
+      MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -240,41 +217,41 @@ Resources:
       CodeUri: ../../functions/api/get_players/
       Handler: get_players.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-GetPlayers
+      FunctionName: test-rotten-chess-GetPlayers
       Timeout: 60 
-      MemorySize: 512  
+      MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
           PLAYER_STATS_TABLE: !Ref PlayerStatsTable
       Architectures:
         - x86_64
-    
+
   GetLeaderboardHistoryFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/api/get_leaderboard_history/
       Handler: get_leaderboard_history.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-GetLeaderboardHistory
+      FunctionName: test-rotten-chess-GetLeaderboardHistory
       Timeout: 60 
-      MemorySize: 512  
+      MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
           LEADERBOARD_HISTORY_TABLE: !Ref LeaderboardHistoryTable
       Architectures:
         - x86_64
-  
+
   GetLastUpdatedFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../../functions/api/get_last_updated/
       Handler: get_last_updated.lambda_handler
       Runtime: python3.12
-      FunctionName: rotten-chess-GetLastUpdated
+      FunctionName: test-rotten-chess-GetLastUpdated
       Timeout: 30
-      MemorySize: 512  
+      MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -286,8 +263,8 @@ Resources:
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
-      StateMachineName: rotten-chess-StateMachine
-      RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
+      StateMachineName: test-rotten-chess-StateMachine
+      RoleArn: !ImportValue rotten-chess-StepFunctionsExecutionRole
       DefinitionString: !Sub |
         {
           "Comment": "State machine to import, provision, enqueue, and deprovision.",
@@ -483,15 +460,3 @@ Outputs:
   GetLastUpdatedFunction:
     Description: ARN of the GetLastUpdated Lambda function
     Value: !GetAtt GetLastUpdatedFunction.Arn
-
-  LambdaExecutionRole:
-    Description: ARN of the Lambda Execution Role
-    Value: !GetAtt LambdaExecutionRole.Arn
-    Export:
-      Name: rotten-chess-LambdaExecutionRole
-  
-  StepFunctionsExecutionRole:
-    Description: ARN of the Step Functions Execution Role
-    Value: !GetAtt StepFunctionsExecutionRole.Arn
-    Export:
-      Name: rotten-chess-StepFunctionsExecutionRole
