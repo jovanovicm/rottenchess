@@ -22,7 +22,7 @@ RottenChess specifically tracks:
 - **Tracked Personalities and Players**: Curated list of chess personalities and other players of interest ([like myself](https://www.chess.com/member/markoj000))
 
 ### Analysis
-The **Stockfish 16.1 Chess Engine** is used to analyse the games.
+The **Stockfish 17 Chess Engine** is used to analyse the games.
 
 To determine the move classifications, first a win percentage calculation must happen. Win percentage represents the chances a player has to win a game in a given position. Stockfish analyzes each position in a game at a <ins>Depth of 20</ins> to determine the centipawn value. The centipawn value is used in the following function, which is [used by Lichess](https://lichess.org/page/accuracy), to calculate the win percentage for every position.
 ```
