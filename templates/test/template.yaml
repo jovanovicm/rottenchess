@@ -1,17 +1,28 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Main test template Rotten Chess
+Description: Test template Rotten Chess
+
+Parameters:
+  DeployEKS:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Default: "false"
+
+Conditions:
+  ShouldDeployEKS: !Equals [!Ref DeployEKS, "true"]
 
 Resources:
   TestInfrastructureStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./test_infrastructure.yaml
+      TemplateURL: ./infrastructure.yaml
 
   TestFunctionsStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./test_functions.yaml
+      TemplateURL: ./functions.yaml
       Parameters:
         VPC: !GetAtt TestInfrastructureStack.Outputs.VPC
         SecurityGroup: !GetAtt TestInfrastructureStack.Outputs.SecurityGroup
@@ -27,9 +38,19 @@ Resources:
   TestAPIStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: ./test_api.yaml
+      TemplateURL: ./api.yaml
       Parameters:
         GetPlayerStatsFunction: !GetAtt TestFunctionsStack.Outputs.GetPlayerStatsFunction
         GetPlayersFunction: !GetAtt TestFunctionsStack.Outputs.GetPlayersFunction
         GetLeaderboardHistoryFunction: !GetAtt TestFunctionsStack.Outputs.GetLeaderboardHistoryFunction
         GetLastUpdatedFunction: !GetAtt TestFunctionsStack.Outputs.GetLastUpdatedFunction
+  
+  TestEKSStack:
+    Condition: ShouldDeployEKS
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./eks.yaml
+      Parameters:
+        VPC: !GetAtt TestInfrastructureStack.Outputs.VPC
+        PrivateSubnets: !GetAtt TestInfrastructureStack.Outputs.PrivateSubnets
+        SecurityGroup: !GetAtt TestInfrastructureStack.Outputs.SecurityGroup

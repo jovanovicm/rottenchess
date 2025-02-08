@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EKS Cluster for Rotten Chess Analysis
+
+Parameters:
+  VPC:
+    Type: String
+  PrivateSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+  SecurityGroup:
+    Type: String
+
+Resources:
+  EKSClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              - eks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EKSPermissions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - eks:*
+                  - ecr:*
+                  - ec2:*
+                Resource: "*"
+    
+  EKSNodeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              - eks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EKSPermissions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - eks:*
+                  - ecr:*
+                  - ec2:*
+                  - logs:*
+                  - sqs:*
+                  - dynamodb:*
+                Resource: "*"
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: RottenChessAnalysisCluster
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      ResourcesVpcConfig:
+        SubnetIds: !Ref Subnets
+        SecurityGroupIds: !Ref SecurityGroup
+
+  EKSNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: RottenChessNodeGroup
+      Subnets: !Ref PrivateSubnets
+      ScalingConfig:
+        MinSize: 0
+        DesiredSize: 0
+        MaxSize: 400
+      InstanceTypes:
+        - c8g.medium
+        - c7g.medium
+        - c6gd.medium
+      CapacityType: SPOT
+      AmiType: AL2023_ARM_64_STANDARD
+      NodeRole: !GetAtt EKSNodeRole.Arn

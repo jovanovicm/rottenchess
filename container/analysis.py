@@ -5,22 +5,19 @@ import math
 import boto3
 import os
 from datetime import timezone, datetime
-from urllib.request import Request, urlopen
 import signal
 
 AWS_REGION = os.getenv('AWS_REGION')
 QUEUE_URL = os.getenv('SQS_QUEUE_URL')
 PLAYER_STATS_TABLE = os.getenv('PLAYER_STATS_TABLE')
-ECS_SERVICE_NAME = os.getenv('ECS_SERVICE_NAME')
-ECS_CLUSTER_NAME = os.getenv('ECS_CLUSTER_NAME')
 PROCESSED_GAMES_TABLE = os.getenv('PROCESSED_GAMES_TABLE')
-ECS_AGENT_URI = os.getenv('ECS_AGENT_URI')
 
 shutdown_flag = False
 message = None
 
 def init_resources():
     global sqs, table, processed_games_table, player_stats_table
+
     sqs = boto3.client('sqs', region_name=AWS_REGION)
     dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
     player_stats_table = dynamodb.Table(PLAYER_STATS_TABLE)
@@ -29,13 +26,9 @@ def init_resources():
 def log_print(*args, **kwargs):
     print(*args, **kwargs, flush=True)
 
-def init_engine(path='/usr/games/stockfish'):
+def init_engine(path='/usr/local/bin/stockfish'):
     global engine
     engine = chess.engine.SimpleEngine.popen_uci(path)
-
-def shutdown():
-    set_task_protection(False)
-    decrease_task_count(ECS_CLUSTER_NAME, ECS_SERVICE_NAME)
 
 def signal_handler(signum, frame):
     global shutdown_flag, message
@@ -52,7 +45,6 @@ def signal_handler(signum, frame):
     except Exception as e:
         log_print(f"Error during message visibility change: {str(e)}")
     
-    shutdown()
     shutdown_flag = True
     log_print("Shutdown signal received. Shutting down...")
 
@@ -74,19 +66,6 @@ def get_processed_games(message_id, processed_games_table):
     processed_games = response.get('Item', {}).get('game_ids', [])
     log_print(f'Processed games: {processed_games}')
     return processed_games
-
-def set_task_protection(protected):
-    url = f"{ECS_AGENT_URI}/task-protection/v1/state"
-    data = json.dumps({
-        "protectionEnabled": protected
-    }).encode('utf-8')
-    headers = {"Content-Type": "application/json"}
-    req = Request(url, data=data, headers=headers, method='PUT')
-    
-    with urlopen(req):
-        pass
-    
-    log_print(f"Scale-in protection set to {protected}.")
 
 def update_player_stats(player, stats, year, month, game_info, player_stats_table, total_games_increment):
     keys = {'username': player}
@@ -175,33 +154,12 @@ def update_player_stats(player, stats, year, month, game_info, player_stats_tabl
 
     log_print(f"Updated stats for {player} in {month}/{year}: {stats}")
 
-def decrease_task_count(cluster_name, service_name):
-    ecs_client = boto3.client('ecs',
-                   region_name=AWS_REGION)
-    
-    response = ecs_client.describe_services(
-        cluster=cluster_name,
-        services=[service_name]
-    )
-
-    current_desired_count = response['services'][0]['desiredCount']
-    new_desired_count = max(0, current_desired_count - 1)
-    
-    if new_desired_count != current_desired_count:
-        ecs_client.update_service(
-            cluster=cluster_name,
-            service=service_name,
-            desiredCount=new_desired_count
-        )
-
-    log_print(f'Decreased desired count to {new_desired_count}')
-
 def fetch_message():
     response = sqs.receive_message(
         QueueUrl=QUEUE_URL,
         MaxNumberOfMessages=1,
         WaitTimeSeconds=20,
-        VisibilityTimeout=7200
+        VisibilityTimeout=7200 #1000
     )
     global message
     message = response.get('Messages', [])
@@ -313,21 +271,16 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     init_engine()
     init_resources()
-    
-    set_task_protection(True)
 
     while not shutdown_flag:
         fetch_message()
         if not message:
-            shutdown()
             break
 
         process_message(message, engine, player_stats_table, processed_games_table, sqs)
     
         engine.quit()
         log_print('TASK COMPLETE')
-
-        shutdown()
         break 
 
 if __name__ == '__main__':

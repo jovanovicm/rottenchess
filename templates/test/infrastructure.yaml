@@ -62,112 +62,10 @@ Resources:
       LogGroupName: test-AnalysisLogGroup
       RetentionInDays: 14
 
-  ECSCluster:
-    Type: AWS::ECS::Cluster
+  TemplatesBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      ClusterName: test-rotten-chess-ECSCluster
-      CapacityProviders:
-        - FARGATE_SPOT
-      DefaultCapacityProviderStrategy:
-        - CapacityProvider: FARGATE_SPOT
-          Weight: 1
-
-  ECSTaskDefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Family: test-rotten-chess-task
-      Cpu: 1024
-      Memory: 2048
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      ExecutionRoleArn: !ImportValue rotten-chess-ECSTaskRole
-      TaskRoleArn: !ImportValue rotten-chess-ECSTaskRole
-      RuntimePlatform:
-        CpuArchitecture: X86_64
-        OperatingSystemFamily: LINUX
-      ContainerDefinitions:
-        - Name: chess-analysis
-          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:test
-          Essential: true
-          Cpu: 1024
-          Memory: 2048
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref AnalysisLogGroup
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: test-ecs
-          Environment:
-            - Name: SQS_QUEUE_URL
-              Value: !Ref GameQueue
-            - Name: PLAYER_STATS_TABLE
-              Value: !Ref PlayerStatsTable
-            - Name: PROCESSED_GAMES_TABLE 
-              Value: !Ref ProcessedGamesTable
-            - Name: ECS_CLUSTER_NAME
-              Value: 'test-rotten-chess-ECSCluster'
-            - Name: ECS_SERVICE_NAME
-              Value: 'test-rotten-chess-ECSService'
-
-  ECSScalingTarget:
-    Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties:
-      MaxCapacity: 100  
-      MinCapacity: 0    
-      ResourceId: !Sub service/${ECSCluster}/${ECSService.Name}
-      ScalableDimension: ecs:service:DesiredCount
-      ServiceNamespace: ecs
-      RoleARN: !ImportValue rotten-chess-AutoScalingRole
-  
-  QueueMessagesAlarmHigh:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions:
-        - Name: QueueName
-          Value: !GetAtt GameQueue.QueueName
-      Statistic: Sum
-      Period: 10
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      AlarmActions:
-        - !Ref ScaleUpPolicy
-
-  ScaleUpPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties:
-      PolicyName: test-ECSServiceScaleUpPolicy
-      PolicyType: StepScaling
-      ScalingTargetId: !Ref ECSScalingTarget
-      StepScalingPolicyConfiguration:
-        AdjustmentType: ChangeInCapacity
-        Cooldown: 10
-        MetricAggregationType: Average
-        StepAdjustments:
-          - MetricIntervalLowerBound: 0
-            ScalingAdjustment: 1
-
-  ECSService:
-    Type: AWS::ECS::Service
-    Properties:
-      ServiceName: test-rotten-chess-ECSService
-      Cluster: !Ref ECSCluster
-      DesiredCount: 0
-      TaskDefinition: !Ref ECSTaskDefinition
-      CapacityProviderStrategy: 
-        - Base: 0
-          CapacityProvider: FARGATE_SPOT
-          Weight: 1
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
-          Subnets:
-            - !Ref PrivateSubnet
-          SecurityGroups:
-            - !Ref SecurityGroup
+      BucketName: test-rotten-chess-TemplatesBucket
 
   VPC:
     Type: AWS::EC2::VPC
@@ -193,7 +91,19 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.0.128.0/24
+      CidrBlock: 10.0.1.0/24
+  
+  EKSSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+  
+  EKSSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
 
   RouteTable:
     Type: AWS::EC2::RouteTable
@@ -234,8 +144,12 @@ Outputs:
     Value: !Ref SecurityGroup
   
   PrivateSubnet:
-    Description: ID of the Private Subnet
+    Description: ID of the PrivateLink Subnet
     Value: !Ref PrivateSubnet
+
+  EKSSubnets:
+    Description: IDs of the EKS Subnets
+    Value: !Join [",", [!Ref EKSSubnet1, !Ref EKSSubnet2]]
 
   GameImportsTable:
     Description: ARN of the Game Imports Table
