@@ -63,18 +63,18 @@ Resources:
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: RottenChessAnalysisCluster
+      Name: test-RottenChessAnalysisCluster
       RoleArn: !GetAtt EKSClusterRole.Arn
       ResourcesVpcConfig:
         SubnetIds: !Ref EKSSubnets
-        SecurityGroupIds: 
+        SecurityGroupIds:
           - !Ref SecurityGroup
 
   EKSNodeGroup:
     Type: AWS::EKS::Nodegroup
     Properties:
       ClusterName: !Ref EKSCluster
-      NodegroupName: RottenChessNodeGroup
+      NodegroupName: test-RottenChessNodeGroup
       Subnets: !Ref EKSSubnets
       ScalingConfig:
         MinSize: 0
