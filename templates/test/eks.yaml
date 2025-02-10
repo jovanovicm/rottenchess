@@ -63,7 +63,7 @@ Resources:
       Name: RottenChessAnalysisCluster
       RoleArn: !GetAtt EKSClusterRole.Arn
       ResourcesVpcConfig:
-        SubnetIds: !Ref Subnets
+        SubnetIds: !Ref EKSSubnets
         SecurityGroupIds: !Ref SecurityGroup
 
   EKSNodeGroup:

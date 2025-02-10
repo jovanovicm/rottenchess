@@ -10,7 +10,7 @@ Parameters:
   PrivateSubnet:
     Type: String
   EKSSubnets:
-    Type: String
+    Type: List<AWS::EC2::Subnet::Id>
   GameImportsTable:
     Type: String
   TrackedPlayersTable:
@@ -215,7 +215,7 @@ Resources:
           S3_BUCKET: !Ref TemplatesBucket
           TEMPLATE_KEY: templates/test/eks.yaml
           VPC: !Ref VPC
-          EKS_SUBNETS: !Ref EKSSubnets
+          EKS_SUBNETS: !Join [ ",", !Ref EKSSubnets ]
           SECURITY_GROUP: !Ref SecurityGroup
       Architectures:
         - x86_64
