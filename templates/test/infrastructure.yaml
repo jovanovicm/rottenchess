@@ -98,12 +98,14 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.2.0/24
-  
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+
   EKSSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
 
   RouteTable:
     Type: AWS::EC2::RouteTable

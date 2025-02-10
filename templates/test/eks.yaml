@@ -43,6 +43,7 @@ Resources:
             Principal:
               Service: 
                 - eks.amazonaws.com
+                - ec2.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: EKSPermissions

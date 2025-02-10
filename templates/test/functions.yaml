@@ -52,6 +52,7 @@ Resources:
                   - ec2:*
                   - iam:*
                   - cloudformation:*
+                  - eks:*
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                   - ssm:GetParameter
