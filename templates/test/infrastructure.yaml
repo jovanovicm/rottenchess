@@ -65,7 +65,7 @@ Resources:
   TemplatesBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: test-rotten-chess-TemplatesBucket
+      BucketName: test-rotten-chess-templatesbucket
 
   VPC:
     Type: AWS::EC2::VPC
