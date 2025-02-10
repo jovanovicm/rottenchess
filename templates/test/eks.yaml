@@ -18,7 +18,8 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              - eks.amazonaws.com
+              Service: 
+                - eks.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: EKSPermissions
@@ -40,7 +41,8 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              - eks.amazonaws.com
+              Service: 
+                - eks.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: EKSPermissions

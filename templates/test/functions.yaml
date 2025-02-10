@@ -50,6 +50,7 @@ Resources:
                   - s3:*
                   - sqs:*
                   - ec2:*
+                  - iam:*
                   - cloudformation:*
                   - logs:CreateLogStream
                   - logs:PutLogEvents
