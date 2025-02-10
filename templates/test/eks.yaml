@@ -4,7 +4,7 @@ Description: EKS Cluster for Rotten Chess Analysis
 Parameters:
   VPC:
     Type: String
-  PrivateSubnets:
+  EKSSubnets:
     Type: List<AWS::EC2::Subnet::Id>
   SecurityGroup:
     Type: String
@@ -71,7 +71,7 @@ Resources:
     Properties:
       ClusterName: !Ref EKSCluster
       NodegroupName: RottenChessNodeGroup
-      Subnets: !Ref PrivateSubnets
+      Subnets: !Ref EKSSubnets
       ScalingConfig:
         MinSize: 0
         DesiredSize: 0

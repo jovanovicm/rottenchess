@@ -27,6 +27,7 @@ Resources:
         VPC: !GetAtt TestInfrastructureStack.Outputs.VPC
         SecurityGroup: !GetAtt TestInfrastructureStack.Outputs.SecurityGroup
         PrivateSubnet: !GetAtt TestInfrastructureStack.Outputs.PrivateSubnet
+        EKSSubnets: !GetAtt TestInfrastructureStack.Outputs.EKSSubnets
         GameImportsTable: !GetAtt TestInfrastructureStack.Outputs.GameImportsTable
         TrackedPlayersTable: !GetAtt TestInfrastructureStack.Outputs.TrackedPlayersTable
         PlayerStatsTable: !GetAtt TestInfrastructureStack.Outputs.PlayerStatsTable
@@ -34,6 +35,7 @@ Resources:
         LeaderboardHistoryTable: !GetAtt TestInfrastructureStack.Outputs.LeaderboardHistoryTable
         MetadataTable: !GetAtt TestInfrastructureStack.Outputs.MetadataTable
         GameQueue: !GetAtt TestInfrastructureStack.Outputs.GameQueue
+        TemplatesBucket: !GetAtt TestInfrastructureStack.Outputs.TemplatesBucket
   
   TestAPIStack:
     Type: AWS::CloudFormation::Stack
@@ -52,5 +54,5 @@ Resources:
       TemplateURL: ./eks.yaml
       Parameters:
         VPC: !GetAtt TestInfrastructureStack.Outputs.VPC
-        PrivateSubnets: !GetAtt TestInfrastructureStack.Outputs.PrivateSubnets
+        EKSSubnets: !GetAtt TestInfrastructureStack.Outputs.EKSSubnets
         SecurityGroup: !GetAtt TestInfrastructureStack.Outputs.SecurityGroup

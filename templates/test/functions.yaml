@@ -9,6 +9,8 @@ Parameters:
     Type: String
   PrivateSubnet:
     Type: String
+  EKSSubnets:
+    Type: String
   GameImportsTable:
     Type: String
   TrackedPlayersTable:
@@ -22,6 +24,8 @@ Parameters:
   MetadataTable:
     Type: String
   GameQueue:
+    Type: String
+  TemplatesBucket:
     Type: String
 
 Resources:
@@ -46,6 +50,7 @@ Resources:
                   - s3:*
                   - sqs:*
                   - ec2:*
+                  - cloudformation:*
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                   - ssm:GetParameter
@@ -194,7 +199,28 @@ Resources:
           METADATA_TABLE: !Ref MetadataTable
       Architectures:
         - x86_64
+  
+  ProvisionEKSFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/provision_eks/
+      Handler: provision_eks.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-ProvisionEKS
+      Timeout: 120
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref TemplatesBucket
+          TEMPLATE_KEY: templates/test/eks.yaml
+          VPC: !Ref VPC
+          EKS_SUBNETS: !Ref EKSSubnets
+          SECURITY_GROUP: !Ref SecurityGroup
+      Architectures:
+        - x86_64
 
+  # API
   GetPlayerStatsFunction:
     Type: AWS::Serverless::Function
     Properties:

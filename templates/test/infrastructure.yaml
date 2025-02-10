@@ -178,3 +178,7 @@ Outputs:
   GameQueue:
     Description: URL of the Game Queue
     Value: !Ref GameQueue
+  
+  TemplatesBucket:
+    Description: Name of Templates Bucket
+    Value: !Ref TemplatesBucket
