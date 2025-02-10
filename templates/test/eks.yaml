@@ -64,7 +64,8 @@ Resources:
       RoleArn: !GetAtt EKSClusterRole.Arn
       ResourcesVpcConfig:
         SubnetIds: !Ref EKSSubnets
-        SecurityGroupIds: !Ref SecurityGroup
+        SecurityGroupIds: 
+          - !Ref SecurityGroup
 
   EKSNodeGroup:
     Type: AWS::EKS::Nodegroup
