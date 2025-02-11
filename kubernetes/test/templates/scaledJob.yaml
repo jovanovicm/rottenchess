@@ -40,7 +40,7 @@ spec:
                   configMapKeyRef:
                     name: rotten-chess-config
                     key: SQS_QUEUE_URL
-  pollingInterval: 900
+  pollingInterval: 30
   successfulJobsHistoryLimit: 5
   failedJobsHistoryLimit: 5
   maxReplicaCount: 100
@@ -50,4 +50,4 @@ spec:
         queueURLFromEnv: SQS_QUEUE_URL
         queueLength: "1"
         awsRegion: "{{ .Values.region }}"
-        scaleOnInFlight: false
+        scaleOnInFlight: "false"

@@ -79,8 +79,8 @@ Resources:
       NodegroupName: test-RottenChessNodeGroup
       Subnets: !Ref EKSSubnets
       ScalingConfig:
-        MinSize: 0
-        DesiredSize: 0
+        MinSize: 1
+        DesiredSize: 1
         MaxSize: 400
       InstanceTypes:
         - c8g.medium
