@@ -72,6 +72,8 @@ Resources:
         SubnetIds: !Ref EKSSubnets
         SecurityGroupIds:
           - !Ref SecurityGroup
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: true
 
   EKSAnalysisNodeGroup:
     Type: AWS::EKS::Nodegroup
