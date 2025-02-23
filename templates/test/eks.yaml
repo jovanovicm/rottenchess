@@ -36,6 +36,7 @@ Resources:
   EKSNodeRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: test-EKSNodeRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -72,19 +73,37 @@ Resources:
         SecurityGroupIds:
           - !Ref SecurityGroup
 
-  EKSNodeGroup:
+  EKSAnalysisNodeGroup:
     Type: AWS::EKS::Nodegroup
     Properties:
       ClusterName: !Ref EKSCluster
-      NodegroupName: test-RottenChessNodeGroup
+      NodegroupName: test-RottenChessAnalysisNodeGroup
       Subnets: !Ref EKSSubnets
+      Labels:
+        nodegroup: analysis
       ScalingConfig:
-        MinSize: 1
-        DesiredSize: 1
+        MinSize: 0
+        DesiredSize: 0
         MaxSize: 400
       InstanceTypes:
         - c8g.medium
         - c7g.medium
+        - c6gd.medium
+      CapacityType: SPOT
+      AmiType: AL2023_ARM_64_STANDARD
+      NodeRole: !GetAtt EKSNodeRole.Arn
+  
+  EKSKEDANodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: test-RottenChessKEDANodeGroup
+      Subnets: !Ref EKSSubnets
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: 1
+        MaxSize: 1
+      InstanceTypes:
         - c6gd.medium
       CapacityType: SPOT
       AmiType: AL2023_ARM_64_STANDARD

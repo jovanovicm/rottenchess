@@ -11,6 +11,8 @@ spec:
         labels:
           app: chess-analysis
       spec:
+        nodeSelector:
+          nodegroup: analysis
         affinity:
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:

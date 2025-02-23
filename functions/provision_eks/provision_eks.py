@@ -18,7 +18,7 @@ def lambda_handler(event, context):
     response = cloudformation.create_stack(
         StackName=stack_name,
         TemplateURL=template_url,
-        Capabilities=['CAPABILITY_IAM','CAPABILITY_AUTO_EXPAND'],
+        Capabilities=['CAPABILITY_IAM','CAPABILITY_AUTO_EXPAND', 'CAPABILITY_NAMED_IAM'],
         Parameters=[
             {
                 'ParameterKey': 'VPC',
