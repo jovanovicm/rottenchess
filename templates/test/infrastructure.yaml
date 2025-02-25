@@ -74,6 +74,19 @@ Resources:
       EnableDnsSupport: true
       EnableDnsHostnames: true
 
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "MyInternetGateway"
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -87,11 +100,30 @@ Resources:
       SourceSecurityGroupId: !Ref SecurityGroup
       GroupId: !Ref SecurityGroup
 
-  PrivateSubnet:
+  PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.0.1.0/24
+      CidrBlock: 10.0.1.0/24 # Change to 10.0.4.0/24, then back to 10.0.1.0/24
+
+  PublicSubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicSubnetRouteTable  
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicSubnetRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
   
   EKSSubnet1:
     Type: AWS::EC2::Subnet
@@ -99,7 +131,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: 10.0.2.0/24
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
-
+  
   EKSSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -107,23 +139,29 @@ Resources:
       CidrBlock: 10.0.3.0/24
       AvailabilityZone: !Select [ 1, !GetAZs '' ]
 
-  RouteTable:
+  EKSSubnetRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
 
-  PrivateSubnetRouteTableAssociation:
+  EKSSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PrivateSubnet
-      RouteTableId: !Ref RouteTable
-  
+      SubnetId: !Ref EKSSubnet1
+      RouteTableId: !Ref EKSSubnetRouteTable
+
+  EKSSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EKSSubnet2
+      RouteTableId: !Ref EKSSubnetRouteTable
+
   S3Endpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
       VpcEndpointType: Gateway
       RouteTableIds:
-        - !Ref RouteTable
+        - !Ref PublicSubnetRouteTable
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
       VpcId: !Ref VPC
   
@@ -132,7 +170,7 @@ Resources:
     Properties:
       VpcEndpointType: Gateway
       RouteTableIds:
-        - !Ref RouteTable
+        - !Ref PublicSubnetRouteTable
       ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
       VpcId: !Ref VPC
 
@@ -145,13 +183,17 @@ Outputs:
     Description: ID of the Security Group
     Value: !Ref SecurityGroup
   
-  PrivateSubnet:
+  PublicSubnet:
     Description: ID of the PrivateLink Subnet
-    Value: !Ref PrivateSubnet
+    Value: !Ref PublicSubnet
 
   EKSSubnets:
     Description: IDs of the EKS Subnets
     Value: !Join [",", [!Ref EKSSubnet1, !Ref EKSSubnet2]]
+  
+  EKSSubnetRouteTable:
+    Description: IDs of the EKS Subnet Route Table
+    Value: !Ref EKSSubnetRouteTable
 
   GameImportsTable:
     Description: ARN of the Game Imports Table

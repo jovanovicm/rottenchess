@@ -26,8 +26,9 @@ Resources:
       Parameters:
         VPC: !GetAtt TestInfrastructureStack.Outputs.VPC
         SecurityGroup: !GetAtt TestInfrastructureStack.Outputs.SecurityGroup
-        PrivateSubnet: !GetAtt TestInfrastructureStack.Outputs.PrivateSubnet
+        PublicSubnet: !GetAtt TestInfrastructureStack.Outputs.PublicSubnet
         EKSSubnets: !GetAtt TestInfrastructureStack.Outputs.EKSSubnets
+        EKSSubnetRouteTable: !GetAtt TestInfrastructureStack.Outputs.EKSSubnetRouteTable
         GameImportsTable: !GetAtt TestInfrastructureStack.Outputs.GameImportsTable
         TrackedPlayersTable: !GetAtt TestInfrastructureStack.Outputs.TrackedPlayersTable
         PlayerStatsTable: !GetAtt TestInfrastructureStack.Outputs.PlayerStatsTable

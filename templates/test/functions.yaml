@@ -7,10 +7,12 @@ Parameters:
     Type: String
   SecurityGroup:
     Type: String
-  PrivateSubnet:
+  PublicSubnet:
     Type: String
   EKSSubnets:
     Type: List<AWS::EC2::Subnet::Id>
+  EKSSubnetRouteTable:
+    Type: String
   GameImportsTable:
     Type: String
   TrackedPlayersTable:
@@ -106,31 +108,61 @@ Resources:
       Architectures:
         - x86_64
 
-  PrivateLinkProvisionFunction:
+  # PrivateLinkProvisionFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: ../../functions/provision_privatelinks/
+  #     Handler: provision_privatelinks.lambda_handler
+  #     Runtime: python3.12
+  #     FunctionName: test-rotten-chess-PrivateLinkProvision
+  #     Timeout: 60 
+  #     MemorySize: 128  
+  #     Role: !GetAtt LambdaExecutionRole.Arn
+  #     Environment:
+  #       Variables:
+  #         VPC_ID: !Ref VPC
+  #         SUBNET_ID: !Ref PrivateSubnet
+  #         SECURITY_GROUP_ID: !Ref SecurityGroup
+  #     Architectures:
+  #       - x86_64
+  
+  ProvisionNATGatewayFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../../functions/provision_privatelinks/
-      Handler: provision_privatelinks.lambda_handler
+      CodeUri: ../../functions/provision_nat_gateway/
+      Handler: provision_nat_gateway.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-PrivateLinkProvision
+      FunctionName: test-rotten-chess-ProvisionNATGateway
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          VPC_ID: !Ref VPC
-          SUBNET_ID: !Ref PrivateSubnet
-          SECURITY_GROUP_ID: !Ref SecurityGroup
+          PUBLIC_SUBNET_ID: !Ref PublicSubnet
+          PRIVATE_ROUTE_TABLE_ID: !Ref EKSSubnetRouteTable
       Architectures:
         - x86_64
 
-  PrivateLinkDeprovisionFunction:
+  # PrivateLinkDeprovisionFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: ../../functions/deprovision_privatelinks/
+  #     Handler: deprovision_privatelinks.lambda_handler
+  #     Runtime: python3.12
+  #     FunctionName: test-rotten-chess-PrivateLinkDeprovision
+  #     Timeout: 60 
+  #     MemorySize: 128  
+  #     Role: !GetAtt LambdaExecutionRole.Arn
+  #     Architectures:
+  #       - x86_64
+
+  DeprovisionNATGatewayFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../../functions/deprovision_privatelinks/
-      Handler: deprovision_privatelinks.lambda_handler
+      CodeUri: ../../functions/deprovision_nat_gateway/
+      Handler: deprovision_nat_gateway.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-PrivateLinkDeprovision
+      FunctionName: test-rotten-chess-DeprovisionNATGateway
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
