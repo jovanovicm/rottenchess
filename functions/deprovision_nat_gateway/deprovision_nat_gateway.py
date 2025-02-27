@@ -9,15 +9,12 @@ def lambda_handler(event, context):
     deleted_nat_gateways = []
     for nat in nat_gateways:
         nat_id = nat.get('NatGatewayId')
-        state = nat.get('State')
-        # Delete NAT gateways in 'available' or 'pending' states.
-        if state in ['available', 'pending']:
-            try:
-                ec2.delete_nat_gateway(NatGatewayId=nat_id)
-                print(f"Deletion initiated for NAT gateway {nat_id} (state: {state})")
-                deleted_nat_gateways.append(nat_id)
-            except Exception as e:
-                print(f"Error deleting NAT gateway {nat_id}: {e}")
+        try:
+            ec2.delete_nat_gateway(NatGatewayId=nat_id)
+            print(f"Deletion initiated for NAT gateway {nat_id}")
+            deleted_nat_gateways.append(nat_id)
+        except Exception as e:
+            print(f"Error deleting NAT gateway {nat_id}: {e}")
     
     addresses_response = ec2.describe_addresses(
         Filters=[{'Name': 'domain', 'Values': ['vpc']}]
