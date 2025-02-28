@@ -16,6 +16,11 @@ def lambda_handler(event, context):
     )
     nat_gateway_id = nat_response['NatGateway']['NatGatewayId']
     
+    # Wait for the NAT gateway to become available
+    waiter = ec2.get_waiter('nat_gateway_available')
+    waiter.wait(NatGatewayIds=[nat_gateway_id])
+    print(f"NAT gateway {nat_gateway_id} is now available.")
+
     try:
         ec2.create_route(
             RouteTableId=PRIVATE_ROUTE_TABLE_ID,
@@ -25,7 +30,7 @@ def lambda_handler(event, context):
         print(f"Default route created in route table {PRIVATE_ROUTE_TABLE_ID} pointing to NAT gateway {nat_gateway_id}")
     except Exception as e:
         print(f"Error updating route table {PRIVATE_ROUTE_TABLE_ID}: {e}")
-
+    
     return {
         'statusCode': 200,
         'natGatewayId': nat_gateway_id,

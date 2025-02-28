@@ -133,7 +133,7 @@ Resources:
       Handler: provision_nat_gateway.lambda_handler
       Runtime: python3.12
       FunctionName: test-rotten-chess-ProvisionNATGateway
-      Timeout: 60 
+      Timeout: 300
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
