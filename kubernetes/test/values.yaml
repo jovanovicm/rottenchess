@@ -1,1 +1,3 @@
-node_role: "test-EKSNodeRole"
+serviceAccount:
+  create: false
+  name: keda-irsa-sa

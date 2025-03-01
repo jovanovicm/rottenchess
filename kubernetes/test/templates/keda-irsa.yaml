@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: keda-irsa
+  namespace: keda
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::{{ .Values.account_id }}:role/test-IRSAServiceRole

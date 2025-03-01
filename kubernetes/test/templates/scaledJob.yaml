@@ -2,6 +2,7 @@ apiVersion: keda.sh/v1alpha1
 kind: ScaledJob
 metadata:
   name: sqs-scaledjob
+  namespace: scaledjobs
 spec:
   jobTargetRef:
     parallelism: 1
@@ -11,6 +12,7 @@ spec:
         labels:
           app: chess-analysis
       spec:
+        serviceAccountName: scaledjob-irsa
         nodeSelector:
           nodegroup: analysis
         affinity:
