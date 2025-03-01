@@ -14,42 +14,52 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
-              Service: 
+              Service:
                 - eks.amazonaws.com
             Action: sts:AssumeRole
-      Policies:
-        - PolicyName: EKSPermissions
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - eks:*
-                  - ecr:*
-                  - ec2:*
-                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
     
   EKSNodeRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: test-EKSNodeRole
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
-              Service: 
-                - eks.amazonaws.com
+              Service:
                 - ec2.amazonaws.com
             Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  IRSAServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: test-IRSAServiceRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/dummy"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringLike:
+                "dummy:sub": "system:serviceaccount:*:*"
       Policies:
         - PolicyName: EKSPermissions
           PolicyDocument:
-            Version: 2012-10-17
+            Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
