@@ -40,7 +40,14 @@ Resources:
           - Effect: Allow
             Principal:
               Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
               AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:user/admin'
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/codebuild-test-rottenchess-SetupCluster-service-role'
             Action: sts:AssumeRole
       Policies:
         - PolicyName: LambdaPermissions
@@ -252,6 +259,23 @@ Resources:
           VPC: !Ref VPC
           EKS_SUBNETS: !Join [ ",", !Ref EKSSubnets ]
           SECURITY_GROUP: !Ref SecurityGroup
+      Architectures:
+        - x86_64
+    
+  UpdateIRSARoleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/update_irsa/
+      Handler: update_irsa.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-UpdateIRSARoleFunction
+      Timeout: 120
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          CLUSTER_NAME: 'test-RottenChessAnalysisCluster'
+          IRSA_ROLE_NAME: 'test-IRSAServiceRole'
       Architectures:
         - x86_64
 
