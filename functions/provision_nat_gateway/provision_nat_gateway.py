@@ -29,7 +29,18 @@ def lambda_handler(event, context):
         )
         print(f"Default route created in route table {PRIVATE_ROUTE_TABLE_ID} pointing to NAT gateway {nat_gateway_id}")
     except Exception as e:
-        print(f"Error updating route table {PRIVATE_ROUTE_TABLE_ID}: {e}")
+        if 'RouteAlreadyExists' in str(e):
+            try:
+                ec2.replace_route(
+                    RouteTableId=PRIVATE_ROUTE_TABLE_ID,
+                    DestinationCidrBlock='0.0.0.0/0',
+                    NatGatewayId=nat_gateway_id
+                )
+                print(f"Default route in route table {PRIVATE_ROUTE_TABLE_ID} replaced with NAT gateway {nat_gateway_id}")
+            except Exception as ex:
+                print(f"Error replacing route in route table {PRIVATE_ROUTE_TABLE_ID}: {ex}")
+        else:
+            print(f"Error updating route table {PRIVATE_ROUTE_TABLE_ID}: {e}")
     
     return {
         'statusCode': 200,
