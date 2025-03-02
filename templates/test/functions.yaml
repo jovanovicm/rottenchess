@@ -268,7 +268,7 @@ Resources:
       CodeUri: ../../functions/update_irsa/
       Handler: update_irsa.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-UpdateIRSARoleFunction
+      FunctionName: test-rotten-chess-UpdateIRSARole
       Timeout: 120
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn

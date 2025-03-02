@@ -1,3 +1,3 @@
 serviceAccount:
   create: false
-  name: keda-irsa-sa
+  name: keda-irsa
