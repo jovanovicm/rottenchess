@@ -276,6 +276,7 @@ Resources:
         Variables:
           CLUSTER_NAME: 'test-RottenChessAnalysisCluster'
           IRSA_ROLE_NAME: 'test-IRSAServiceRole'
+          ACCOUNT_ID: !Sub '${AWS::AccountId}'
       Architectures:
         - x86_64
 
