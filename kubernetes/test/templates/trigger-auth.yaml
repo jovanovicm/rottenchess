@@ -1,0 +1,8 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: trigger-auth
+  namespace: scaledjobs
+spec:
+  podIdentity:
+    provider: aws

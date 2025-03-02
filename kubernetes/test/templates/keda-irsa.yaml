@@ -4,4 +4,4 @@ metadata:
   name: keda-irsa
   namespace: keda
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::{{ .Values.account_id }}:role/test-IRSAServiceRole
+    eks.amazonaws.com/role-arn: "arn:aws:iam::{{ .Values.account_id }}:role/test-IRSAServiceRole"
