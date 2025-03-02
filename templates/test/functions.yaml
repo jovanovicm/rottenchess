@@ -88,6 +88,7 @@ Resources:
                   - lambda:InvokeFunction
                   - logs:*
                   - events:*
+                  - codebuild:*
                 Resource: "*"
 
   ImportPlayerGamesLogGroup:
