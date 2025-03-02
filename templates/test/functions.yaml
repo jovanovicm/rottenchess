@@ -68,6 +68,28 @@ Resources:
                   - ssm:GetParameter
                 Resource: "*"
 
+  StepFunctionsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionPermissions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - lambda:InvokeFunction
+                  - logs:*
+                  - events:*
+                Resource: "*"
+
   ImportPlayerGamesLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -367,7 +389,7 @@ Resources:
     Type: AWS::StepFunctions::StateMachine
     Properties:
       StateMachineName: test-rotten-chess-StateMachine
-      RoleArn: !ImportValue rotten-chess-StepFunctionsExecutionRole
+      RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
       DefinitionString: !Sub |
         {
           "Comment": "State machine",
