@@ -27,7 +27,7 @@ spec:
                 topologyKey: "kubernetes.io/hostname"
         containers:
           - name: chess-analysis
-            image: "{{ .Values.account_id }}.dkr.ecr.{{ .Values.region }}.amazonaws.com/rotten-chess-ecr-repository:debug"
+            image: "{{ .Values.account_id }}.dkr.ecr.{{ .Values.region }}.amazonaws.com/rotten-chess-ecr-repository:eks"
             env:
               - name: PLAYER_STATS_TABLE
                 valueFrom:
