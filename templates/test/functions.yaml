@@ -370,10 +370,10 @@ Resources:
       RoleArn: !ImportValue rotten-chess-StepFunctionsExecutionRole
       DefinitionString: !Sub |
         {
-          "Comment": "State machine to import, provision, enqueue, and deprovision.",
-          "StartAt": "Parallel",
+          "Comment": "State machine",
+          "StartAt": "Parallel Branch",
           "States": {
-            "Parallel": {
+            "Parallel Branch": {
               "Type": "Parallel",
               "Branches": [
                 {
@@ -404,36 +404,20 @@ Resources:
                   }
                 },
                 {
-                  "StartAt": "Provision PrivateLinks",
+                  "StartAt": "Provision NAT Gateway",
                   "States": {
-                    "Provision PrivateLinks": {
+                    "Provision NAT Gateway": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvision:$LATEST",
-                      "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkProvision:$LATEST"
-                      },
-                      "ResultPath": "$.provisionResult",
-                      "Retry": [
-                        {
-                          "ErrorEquals": [
-                            "Lambda.ServiceException",
-                            "Lambda.AWSLambdaException",
-                            "Lambda.SdkClientException",
-                            "Lambda.TooManyRequestsException"
-                          ],
-                          "IntervalSeconds": 1,
-                          "MaxAttempts": 3,
-                          "BackoffRate": 2
-                        }
-                      ],
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ProvisionNATGateway:$LATEST",
+                      "ResultPath": "$.natResult",
                       "End": true
                     }
                   }
                 }
               ],
-              "Next": "Enqueue DynamoDB items"
+              "Next": "Enqueue DynamoDB Items"
             },
-            "Enqueue DynamoDB items": {
+            "Enqueue DynamoDB Items": {
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Parameters": {
@@ -453,49 +437,77 @@ Resources:
                   "BackoffRate": 2
                 }
               ],
-              "Next": "Check Queue"
+              "Next": "Provision EKS"
             },
-            "Check Queue": {
+            "Provision EKS": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueue:$LATEST",
-              "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-CheckQueue:$LATEST"
-              },
-              "Next": "Is Queue Empty"
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ProvisionEKS:$LATEST",
+              "ResultPath": "$.eksResult",
+              "Next": "Update IRSA Role"
             },
-            "Is Queue Empty": {
+            "Update IRSA Role": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-UpdateIRSARole:$LATEST",
+              "ResultPath": "$.irsaResult",
+              "Next": "Run CodeBuild"
+            },
+            "Run CodeBuild": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::codebuild:startBuild.sync",
+              "Parameters": {
+                "ProjectName": "YourCodeBuildProjectName"
+              },
+              "ResultPath": "$.codebuildResult",
+              "Next": "Wait 5 Minutes"
+            },
+            "Wait 5 Minutes": {
+              "Type": "Wait",
+              "Seconds": 300,
+              "Next": "Check Deprovision Condition"
+            },
+            "Check Deprovision Condition": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeprovisionEKS:$LATEST",
+              "Next": "Is Condition Met"
+            },
+            "Is Condition Met": {
               "Type": "Choice",
               "Choices": [
                 {
-                  "Variable": "$.isEmpty",
+                  "Variable": "$.deprovision",
                   "BooleanEquals": true,
-                  "Next": "Deprovision PrivateLinks"
+                  "Next": "Deprovision Flow"
                 }
               ],
-              "Default": "Wait and Recheck Queue"
+              "Default": "Wait 1 Minute"
             },
-            "Wait and Recheck Queue": {
+            "Wait 1 Minute": {
               "Type": "Wait",
-              "Seconds": 120,
-              "Next": "Check Queue"
+              "Seconds": 60,
+              "Next": "Check Deprovision Condition"
             },
-            "Deprovision PrivateLinks": {
-              "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovision:$LATEST",
-              "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-PrivateLinkDeprovision:$LATEST"
-              },
-              "Retry": [
+            "Deprovision Flow": {
+              "Type": "Parallel",
+              "Branches": [
                 {
-                  "ErrorEquals": [
-                    "Lambda.ServiceException",
-                    "Lambda.AWSLambdaException",
-                    "Lambda.SdkClientException",
-                    "Lambda.TooManyRequestsException"
-                  ],
-                  "IntervalSeconds": 1,
-                  "MaxAttempts": 3,
-                  "BackoffRate": 2
+                  "StartAt": "Deprovision EKS",
+                  "States": {
+                    "Deprovision EKS": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeprovisionEKS:$LATEST",
+                      "End": true
+                    }
+                  }
+                },
+                {
+                  "StartAt": "Deprovision NAT Gateway",
+                  "States": {
+                    "Deprovision NAT Gateway": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeprovisionNATGateway:$LATEST",
+                      "End": true
+                    }
+                  }
                 }
               ],
               "Next": "Delete DynamoDB Items"
@@ -526,22 +538,9 @@ Resources:
               "Resource": "arn:aws:states:::lambda:invoke",
               "OutputPath": "$.Payload",
               "Parameters": {
-                "Payload.$": "$",
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-LastUpdated:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-LastUpdated:$LATEST",
+                "Payload.$": "$"
               },
-              "Retry": [
-                {
-                  "ErrorEquals": [
-                    "Lambda.ServiceException",
-                    "Lambda.AWSLambdaException",
-                    "Lambda.SdkClientException",
-                    "Lambda.TooManyRequestsException"
-                  ],
-                  "IntervalSeconds": 1,
-                  "MaxAttempts": 3,
-                  "BackoffRate": 2
-                }
-              ],
               "End": true
             }
           }
