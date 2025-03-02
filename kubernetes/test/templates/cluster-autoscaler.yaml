@@ -29,6 +29,8 @@ spec:
             - --skip-nodes-with-local-storage=false
             - --expander=least-waste
             - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/test-RottenChessAnalysisCluster
+            - --scale-down-unneeded-time=10s
+            - --scale-down-delay-after-add=10s
           env:
             - name: AWS_REGION
               value: "{{ .Values.region }}"
