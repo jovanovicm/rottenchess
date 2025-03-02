@@ -1,0 +1,630 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: k8s Rotten Chess Functions
+
+Parameters:
+  VPC:
+    Type: String
+  SecurityGroup:
+    Type: String
+  PublicSubnet:
+    Type: String
+  EKSSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+  EKSSubnetRouteTable:
+    Type: String
+  GameImportsTable:
+    Type: String
+  TrackedPlayersTable:
+    Type: String
+  PlayerStatsTable:
+    Type: String
+  ProcessedGamesTable:
+    Type: String
+  LeaderboardHistoryTable:
+    Type: String
+  MetadataTable:
+    Type: String
+  GameQueue:
+    Type: String
+  TemplatesBucket:
+    Type: String
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:user/admin'
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/codebuild-k8s-rottenchess-SetupCluster-service-role'
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaPermissions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:*
+                  - s3:*
+                  - sqs:*
+                  - ec2:*
+                  - iam:*
+                  - cloudformation:*
+                  - eks:*
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - ssm:GetParameter
+                Resource: "*"
+
+  StepFunctionsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionPermissions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - lambda:InvokeFunction
+                  - logs:*
+                  - events:*
+                  - codebuild:*
+                Resource: "*"
+
+  ImportPlayerGamesLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ImportPlayerGamesFunction}'
+      RetentionInDays: 14
+
+  EnqueueDynamoDBItemsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${EnqueueDynamoDBItemsFunction}'
+      RetentionInDays: 14
+
+  ImportPlayerGamesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/import_player_games/
+      Handler: import_player_games.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-ImportPlayerGames
+      Timeout: 300
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          GAME_IMPORTS_TABLE: !Ref GameImportsTable
+          TRACKED_PLAYERS_TABLE: !Ref TrackedPlayersTable
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+          PARAMETER_NAME: user-agent-email
+      Architectures:
+        - x86_64
+
+  EnqueueDynamoDBItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/enqueue_dynamodb_items/
+      Handler: enqueue_dynamodb_items.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-EnqueueDynamoDBItems
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          GAME_IMPORTS_TABLE: !Ref GameImportsTable
+          SQS_QUEUE_URL: !Ref GameQueue
+      Architectures:
+        - x86_64
+
+  # PrivateLinkProvisionFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: ../../functions/provision_privatelinks/
+  #     Handler: provision_privatelinks.lambda_handler
+  #     Runtime: python3.12
+  #     FunctionName: k8s-rotten-chess-PrivateLinkProvision
+  #     Timeout: 60 
+  #     MemorySize: 128  
+  #     Role: !GetAtt LambdaExecutionRole.Arn
+  #     Environment:
+  #       Variables:
+  #         VPC_ID: !Ref VPC
+  #         SUBNET_ID: !Ref PrivateSubnet
+  #         SECURITY_GROUP_ID: !Ref SecurityGroup
+  #     Architectures:
+  #       - x86_64
+  
+  ProvisionNATGatewayFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/provision_nat_gateway/
+      Handler: provision_nat_gateway.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-ProvisionNATGateway
+      Timeout: 300
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          PUBLIC_SUBNET_ID: !Ref PublicSubnet
+          PRIVATE_ROUTE_TABLE_ID: !Ref EKSSubnetRouteTable
+      Architectures:
+        - x86_64
+
+  # PrivateLinkDeprovisionFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     CodeUri: ../../functions/deprovision_privatelinks/
+  #     Handler: deprovision_privatelinks.lambda_handler
+  #     Runtime: python3.12
+  #     FunctionName: k8s-rotten-chess-PrivateLinkDeprovision
+  #     Timeout: 60 
+  #     MemorySize: 128  
+  #     Role: !GetAtt LambdaExecutionRole.Arn
+  #     Architectures:
+  #       - x86_64
+
+  DeprovisionNATGatewayFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/deprovision_nat_gateway/
+      Handler: deprovision_nat_gateway.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-DeprovisionNATGateway
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Architectures:
+        - x86_64
+
+  CheckQueueFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/check_queue/
+      Handler: check_queue.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-CheckQueue
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref GameQueue
+      Architectures:
+        - x86_64
+
+  DeleteDynamoDBItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/delete_dynamodb_items/
+      Handler: delete_dynamodb_items.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-DeleteDynamoDBItems
+      Timeout: 120 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          GAME_IMPORTS_TABLE: !Ref GameImportsTable
+          PROCESSED_GAMES_TABLE: !Ref ProcessedGamesTable
+      Architectures:
+        - x86_64
+
+  UpdateLeaderboardHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/update_leaderboard_history/
+      Handler: update_leaderboard_history.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-UpdateLeaderboardHistory
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+          LEADERBOARD_HISTORY_TABLE: !Ref LeaderboardHistoryTable
+      Architectures:
+        - x86_64
+
+  LastUpdatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/last_updated/
+      Handler: last_updated.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-LastUpdated
+      Timeout: 30 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+      Architectures:
+        - x86_64
+  
+  ProvisionEKSFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/provision_eks/
+      Handler: provision_eks.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-ProvisionEKS
+      Timeout: 120
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref TemplatesBucket
+          TEMPLATE_KEY: templates/k8s/eks.yaml
+          VPC: !Ref VPC
+          EKS_SUBNETS: !Join [ ",", !Ref EKSSubnets ]
+          SECURITY_GROUP: !Ref SecurityGroup
+      Architectures:
+        - x86_64
+  
+  DeprovisionEKSFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/deprovision_eks/
+      Handler: deprovision_eks.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-DeprovisionEKS
+      Timeout: 120
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref GameQueue
+          STACK_NAME: k8sEKSStack
+      Architectures:
+        - x86_64
+    
+  UpdateIRSARoleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/update_irsa/
+      Handler: update_irsa.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-UpdateIRSARole
+      Timeout: 120
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          CLUSTER_NAME: 'k8s-RottenChessAnalysisCluster'
+          IRSA_ROLE_NAME: 'k8s-IRSAServiceRole'
+          ACCOUNT_ID: !Sub '${AWS::AccountId}'
+      Architectures:
+        - x86_64
+  
+  IsClusterUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/is_cluster_up/
+      Handler: is_cluster_up.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-IsClusterUp
+      Timeout: 120
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          CLUSTER_NAME: 'k8s-RottenChessAnalysisCluster'
+      Architectures:
+        - x86_64
+
+  # API
+  GetPlayerStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_player_stats/
+      Handler: get_player_stats.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-GetPlayerStats
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+
+  GetPlayersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_players/
+      Handler: get_players.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-GetPlayers
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          PLAYER_STATS_TABLE: !Ref PlayerStatsTable
+      Architectures:
+        - x86_64
+
+  GetLeaderboardHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_leaderboard_history/
+      Handler: get_leaderboard_history.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-GetLeaderboardHistory
+      Timeout: 60 
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          LEADERBOARD_HISTORY_TABLE: !Ref LeaderboardHistoryTable
+      Architectures:
+        - x86_64
+
+  GetLastUpdatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/api/get_last_updated/
+      Handler: get_last_updated.lambda_handler
+      Runtime: python3.12
+      FunctionName: k8s-rotten-chess-GetLastUpdated
+      Timeout: 30
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          METADATA_TABLE: !Ref MetadataTable
+      Architectures:
+        - x86_64
+
+  # Step Functions
+  StateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: k8s-rotten-chess-StateMachine
+      RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
+      DefinitionString: !Sub |
+        {
+          "Comment": "State machine",
+          "StartAt": "Parallel Branch",
+          "States": {
+            "Parallel Branch": {
+              "Type": "Parallel",
+              "Branches": [
+                {
+                  "StartAt": "Import Player Games",
+                  "States": {
+                    "Import Player Games": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-ImportPlayerGames:$LATEST",
+                      "Parameters": {
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-ImportPlayerGames:$LATEST"
+                      },
+                      "ResultPath": "$.importResult",
+                      "Retry": [
+                        {
+                          "ErrorEquals": [
+                            "Lambda.ServiceException",
+                            "Lambda.AWSLambdaException",
+                            "Lambda.SdkClientException",
+                            "Lambda.TooManyRequestsException"
+                          ],
+                          "IntervalSeconds": 1,
+                          "MaxAttempts": 3,
+                          "BackoffRate": 2
+                        }
+                      ],
+                      "End": true
+                    }
+                  }
+                },
+                {
+                  "StartAt": "Provision NAT Gateway",
+                  "States": {
+                    "Provision NAT Gateway": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-ProvisionNATGateway:$LATEST",
+                      "ResultPath": "$.natResult",
+                      "End": true
+                    }
+                  }
+                }
+              ],
+              "Next": "Enqueue DynamoDB Items"
+            },
+            "Enqueue DynamoDB Items": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-EnqueueDynamoDBItems:$LATEST",
+                "Payload.$": "$"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Provision EKS"
+            },
+            "Provision EKS": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-ProvisionEKS:$LATEST",
+              "ResultPath": "$.eksResult",
+              "Next": "Wait 5 Minutes for Cluster"
+            },
+            "Wait 5 Minutes for Cluster": {
+              "Type": "Wait",
+              "Seconds": 300,
+              "Next": "Check Cluster Up"
+            },
+            "Check Cluster Up": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-IsClusterUp:$LATEST",
+              "ResultPath": "$.clusterCheck",
+              "Next": "Cluster Check Choice"
+            },
+            "Cluster Check Choice": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.clusterCheck.clusterUp",
+                  "BooleanEquals": true,
+                  "Next": "Update IRSA Role"
+                }
+              ],
+              "Default": "Wait 1 Minute for Cluster"
+            },
+            "Wait 1 Minute for Cluster": {
+              "Type": "Wait",
+              "Seconds": 60,
+              "Next": "Check Cluster Up"
+            },
+            "Update IRSA Role": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-UpdateIRSARole:$LATEST",
+              "ResultPath": "$.irsaResult",
+              "Next": "Run CodeBuild"
+            },
+            "Run CodeBuild": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::codebuild:startBuild.sync",
+              "Parameters": {
+                "ProjectName": "k8s-rottenchess-SetupCluster"
+              },
+              "ResultPath": "$.codebuildResult",
+              "Next": "Wait 5 Minutes"
+            },
+            "Wait 5 Minutes": {
+              "Type": "Wait",
+              "Seconds": 300,
+              "Next": "Check Deprovision Condition"
+            },
+            "Check Deprovision Condition": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeprovisionEKS:$LATEST",
+              "Next": "Is Condition Met"
+            },
+            "Is Condition Met": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.deprovision",
+                  "BooleanEquals": true,
+                  "Next": "Deprovision Flow"
+                }
+              ],
+              "Default": "Wait 1 Minute"
+            },
+            "Wait 1 Minute": {
+              "Type": "Wait",
+              "Seconds": 60,
+              "Next": "Check Deprovision Condition"
+            },
+            "Deprovision Flow": {
+              "Type": "Parallel",
+              "Branches": [
+                {
+                  "StartAt": "Deprovision EKS",
+                  "States": {
+                    "Deprovision EKS": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeprovisionEKS:$LATEST",
+                      "End": true
+                    }
+                  }
+                },
+                {
+                  "StartAt": "Deprovision NAT Gateway",
+                  "States": {
+                    "Deprovision NAT Gateway": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeprovisionNATGateway:$LATEST",
+                      "End": true
+                    }
+                  }
+                }
+              ],
+              "Next": "Delete DynamoDB Items"
+            },
+            "Delete DynamoDB Items": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeleteDynamoDBItems:$LATEST",
+              "Parameters": {
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeleteDynamoDBItems:$LATEST"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Last Updated"
+            },
+            "Last Updated": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-LastUpdated:$LATEST",
+                "Payload.$": "$"
+              },
+              "End": true
+            }
+          }
+        }
+
+Outputs:
+  GetPlayerStatsFunction:
+    Description: ARN of the GetPlayerStats Lambda function
+    Value: !GetAtt GetPlayerStatsFunction.Arn
+
+  GetPlayersFunction:
+    Description: ARN of the GetPlayers Lambda function
+    Value: !GetAtt GetPlayersFunction.Arn
+  
+  GetLeaderboardHistoryFunction:
+    Description: ARN of the GetLeaderboardHistory Lambda function
+    Value: !GetAtt GetLeaderboardHistoryFunction.Arn
+  
+  GetLastUpdatedFunction:
+    Description: ARN of the GetLastUpdated Lambda function
+    Value: !GetAtt GetLastUpdatedFunction.Arn

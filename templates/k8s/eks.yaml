@@ -28,7 +28,7 @@ Resources:
   EKSNodeRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: test-EKSNodeRole
+      RoleName: k8s-EKSNodeRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -45,7 +45,7 @@ Resources:
   IRSAServiceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: test-IRSAServiceRole
+      RoleName: k8s-IRSAServiceRole
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -75,7 +75,7 @@ Resources:
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: test-RottenChessAnalysisCluster
+      Name: k8s-RottenChessAnalysisCluster
       RoleArn: !GetAtt EKSClusterRole.Arn
       AccessConfig:
         AuthenticationMode: API_AND_CONFIG_MAP
@@ -90,7 +90,7 @@ Resources:
     Type: AWS::EKS::Nodegroup
     Properties:
       ClusterName: !Ref EKSCluster
-      NodegroupName: test-RottenChessAnalysisNodeGroup
+      NodegroupName: k8s-RottenChessAnalysisNodeGroup
       Subnets: !Ref EKSSubnets
       Labels:
         nodegroup: analysis
@@ -110,7 +110,7 @@ Resources:
     Type: AWS::EKS::Nodegroup
     Properties:
       ClusterName: !Ref EKSCluster
-      NodegroupName: test-RottenChessKEDANodeGroup
+      NodegroupName: k8s-RottenChessKEDANodeGroup
       Subnets: !Ref EKSSubnets
       ScalingConfig:
         MinSize: 1
@@ -128,7 +128,7 @@ Resources:
     Type: AWS::EKS::Nodegroup
     Properties:
       ClusterName: !Ref EKSCluster
-      NodegroupName: test-RottenChessAutoscalerNodeGroup
+      NodegroupName: k8s-RottenChessAutoscalerNodeGroup
       Subnets: !Ref EKSSubnets
       Labels:
         nodegroup: autoscaler

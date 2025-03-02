@@ -48,12 +48,3 @@ Resources:
         GetLeaderboardHistoryFunction: !GetAtt TestFunctionsStack.Outputs.GetLeaderboardHistoryFunction
         GetLastUpdatedFunction: !GetAtt TestFunctionsStack.Outputs.GetLastUpdatedFunction
   
-  TestEKSStack:
-    Condition: ShouldDeployEKS
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: ./eks.yaml
-      Parameters:
-        VPC: !GetAtt TestInfrastructureStack.Outputs.VPC
-        EKSSubnets: !GetAtt TestInfrastructureStack.Outputs.EKSSubnets
-        SecurityGroup: !GetAtt TestInfrastructureStack.Outputs.SecurityGroup
