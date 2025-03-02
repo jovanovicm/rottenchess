@@ -477,7 +477,7 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:states:::codebuild:startBuild.sync",
               "Parameters": {
-                "ProjectName": "YourCodeBuildProjectName"
+                "ProjectName": "test-rottenchess-SetupCluster"
               },
               "ResultPath": "$.codebuildResult",
               "Next": "Wait 5 Minutes"
