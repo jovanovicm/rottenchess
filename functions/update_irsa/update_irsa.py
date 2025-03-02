@@ -3,6 +3,7 @@ import json
 import boto3
 
 def lambda_handler(event, context):
+    # Retrieve environment variables
     cluster_name = os.getenv("CLUSTER_NAME")
     aws_region = os.getenv("AWS_REGION")
     account_id = os.getenv("ACCOUNT_ID")
@@ -11,17 +12,43 @@ def lambda_handler(event, context):
     eks_client = boto3.client("eks", region_name=aws_region)
     iam_client = boto3.client("iam", region_name=aws_region)
     
+    # Get EKS cluster info and extract the OIDC issuer URL
     cluster_info = eks_client.describe_cluster(name=cluster_name)
     oidc_issuer_url = cluster_info['cluster']['identity']['oidc']['issuer']
+    # Remove the protocol to form the provider identifier
     oidc_provider = oidc_issuer_url.replace("https://", "")
     
+    # Form the expected provider ARN
+    provider_arn = f"arn:aws:iam::{account_id}:oidc-provider/{oidc_provider}"
+    
+    # Check if the OIDC provider is already registered
+    providers = iam_client.list_open_id_connect_providers()['OpenIDConnectProviderList']
+    provider_exists = any(provider.get('Arn') == provider_arn for provider in providers)
+    
+    if not provider_exists:
+        try:
+            create_response = iam_client.create_open_id_connect_provider(
+                Url=oidc_issuer_url,
+                ClientIDList=["sts.amazonaws.com"],
+                ThumbprintList=["9e99a48a9960b14926bb7f3b02e22da0afd8c30a"]
+            )
+            print("OIDC provider created:", create_response)
+        except Exception as e:
+            return {
+                "statusCode": 500,
+                "body": json.dumps(f"Error creating OIDC provider: {str(e)}")
+            }
+    else:
+        print("OIDC provider already exists:", provider_arn)
+    
+    # Build the trust policy with the correct OIDC provider ARN
     trust_policy = {
         "Version": "2012-10-17",
         "Statement": [
             {
                 "Effect": "Allow",
                 "Principal": {
-                    "Federated": f"arn:aws:iam::{account_id}:oidc-provider/{oidc_provider}"
+                    "Federated": provider_arn
                 },
                 "Action": "sts:AssumeRoleWithWebIdentity",
                 "Condition": {
@@ -35,6 +62,7 @@ def lambda_handler(event, context):
     trust_policy_json = json.dumps(trust_policy)
     
     try:
+        # Update the IRSA role's trust policy
         iam_client.update_assume_role_policy(
             RoleName=irsa_role_name,
             PolicyDocument=trust_policy_json
@@ -45,7 +73,8 @@ def lambda_handler(event, context):
             "body": json.dumps({
                 "message": "IRSA role updated successfully.",
                 "roleArn": role_arn,
-                "oidc_provider": oidc_provider
+                "oidc_provider": oidc_provider,
+                "oidc_provider_arn": provider_arn
             })
         }
     except Exception as e:
