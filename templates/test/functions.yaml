@@ -261,6 +261,23 @@ Resources:
           SECURITY_GROUP: !Ref SecurityGroup
       Architectures:
         - x86_64
+  
+  DeprovisionEKSFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/deprovision_eks/
+      Handler: deprovision_eks.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-DeprovisionEKS
+      Timeout: 120
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref GameQueue
+          STACK_NAME: TestEKSStack
+      Architectures:
+        - x86_64
     
   UpdateIRSARoleFunction:
     Type: AWS::Serverless::Function
