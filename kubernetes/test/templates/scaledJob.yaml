@@ -1,0 +1,59 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: chess-analysis-job
+  namespace: scaledjobs
+spec:
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    template:
+      metadata:
+        labels:
+          app: chess-analysis
+      spec:
+        serviceAccountName: scaledjob-irsa
+        nodeSelector:
+          nodegroup: analysis
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - chess-analysis
+                topologyKey: "kubernetes.io/hostname"
+        containers:
+          - name: chess-analysis
+            image: "{{ .Values.account_id }}.dkr.ecr.{{ .Values.region }}.amazonaws.com/rotten-chess-ecr-repository:eks"
+            env:
+              - name: PLAYER_STATS_TABLE
+                valueFrom:
+                  configMapKeyRef:
+                    name: rotten-chess-config
+                    key: PLAYER_STATS_TABLE
+              - name: PROCESSED_GAMES_TABLE
+                valueFrom:
+                  configMapKeyRef:
+                    name: rotten-chess-config
+                    key: PROCESSED_GAMES_TABLE
+              - name: SQS_QUEUE_URL
+                valueFrom:
+                  configMapKeyRef:
+                    name: rotten-chess-config
+                    key: SQS_QUEUE_URL
+  pollingInterval: 30
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  maxReplicaCount: 100
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURLFromEnv: SQS_QUEUE_URL
+        queueLength: "1"
+        awsRegion: "{{ .Values.region }}"
+        scaleOnInFlight: "false"
+      authenticationRef:
+        name: trigger-auth

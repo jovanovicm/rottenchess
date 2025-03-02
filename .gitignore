@@ -4,4 +4,7 @@ other/
 __pycache__/
 .pytest_cache
 stockfish/
-container/test
+container/chess-analysis/test
+container/chess-analysis/debug
+kubernetes/prod/secrets.yaml
+kubernetes/test/secrets.yaml

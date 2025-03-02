@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Test Rotten Chess Functions
+Description: k8s Rotten Chess Functions
 
 Parameters:
   VPC:
@@ -47,7 +47,7 @@ Resources:
             Action: sts:AssumeRole
           - Effect: Allow
             Principal:
-              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/codebuild-test-rottenchess-SetupCluster-service-role'
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:role/service-role/codebuild-k8s-rottenchess-SetupCluster-service-role'
             Action: sts:AssumeRole
       Policies:
         - PolicyName: LambdaPermissions
@@ -109,7 +109,7 @@ Resources:
       CodeUri: ../../functions/import_player_games/
       Handler: import_player_games.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-ImportPlayerGames
+      FunctionName: k8s-rotten-chess-ImportPlayerGames
       Timeout: 300
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
@@ -127,7 +127,7 @@ Resources:
       CodeUri: ../../functions/enqueue_dynamodb_items/
       Handler: enqueue_dynamodb_items.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-EnqueueDynamoDBItems
+      FunctionName: k8s-rotten-chess-EnqueueDynamoDBItems
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -144,7 +144,7 @@ Resources:
   #     CodeUri: ../../functions/provision_privatelinks/
   #     Handler: provision_privatelinks.lambda_handler
   #     Runtime: python3.12
-  #     FunctionName: test-rotten-chess-PrivateLinkProvision
+  #     FunctionName: k8s-rotten-chess-PrivateLinkProvision
   #     Timeout: 60 
   #     MemorySize: 128  
   #     Role: !GetAtt LambdaExecutionRole.Arn
@@ -162,7 +162,7 @@ Resources:
       CodeUri: ../../functions/provision_nat_gateway/
       Handler: provision_nat_gateway.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-ProvisionNATGateway
+      FunctionName: k8s-rotten-chess-ProvisionNATGateway
       Timeout: 300
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -179,7 +179,7 @@ Resources:
   #     CodeUri: ../../functions/deprovision_privatelinks/
   #     Handler: deprovision_privatelinks.lambda_handler
   #     Runtime: python3.12
-  #     FunctionName: test-rotten-chess-PrivateLinkDeprovision
+  #     FunctionName: k8s-rotten-chess-PrivateLinkDeprovision
   #     Timeout: 60 
   #     MemorySize: 128  
   #     Role: !GetAtt LambdaExecutionRole.Arn
@@ -192,7 +192,7 @@ Resources:
       CodeUri: ../../functions/deprovision_nat_gateway/
       Handler: deprovision_nat_gateway.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-DeprovisionNATGateway
+      FunctionName: k8s-rotten-chess-DeprovisionNATGateway
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -205,7 +205,7 @@ Resources:
       CodeUri: ../../functions/check_queue/
       Handler: check_queue.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-CheckQueue
+      FunctionName: k8s-rotten-chess-CheckQueue
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -221,7 +221,7 @@ Resources:
       CodeUri: ../../functions/delete_dynamodb_items/
       Handler: delete_dynamodb_items.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-DeleteDynamoDBItems
+      FunctionName: k8s-rotten-chess-DeleteDynamoDBItems
       Timeout: 120 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -238,7 +238,7 @@ Resources:
       CodeUri: ../../functions/update_leaderboard_history/
       Handler: update_leaderboard_history.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-UpdateLeaderboardHistory
+      FunctionName: k8s-rotten-chess-UpdateLeaderboardHistory
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -255,7 +255,7 @@ Resources:
       CodeUri: ../../functions/last_updated/
       Handler: last_updated.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-LastUpdated
+      FunctionName: k8s-rotten-chess-LastUpdated
       Timeout: 30 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -271,14 +271,14 @@ Resources:
       CodeUri: ../../functions/provision_eks/
       Handler: provision_eks.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-ProvisionEKS
+      FunctionName: k8s-rotten-chess-ProvisionEKS
       Timeout: 120
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
           S3_BUCKET: !Ref TemplatesBucket
-          TEMPLATE_KEY: templates/test/eks.yaml
+          TEMPLATE_KEY: templates/k8s/eks.yaml
           VPC: !Ref VPC
           EKS_SUBNETS: !Join [ ",", !Ref EKSSubnets ]
           SECURITY_GROUP: !Ref SecurityGroup
@@ -291,14 +291,14 @@ Resources:
       CodeUri: ../../functions/deprovision_eks/
       Handler: deprovision_eks.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-DeprovisionEKS
+      FunctionName: k8s-rotten-chess-DeprovisionEKS
       Timeout: 120
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
           SQS_QUEUE_URL: !Ref GameQueue
-          STACK_NAME: TestEKSStack
+          STACK_NAME: k8sEKSStack
       Architectures:
         - x86_64
     
@@ -308,14 +308,14 @@ Resources:
       CodeUri: ../../functions/update_irsa/
       Handler: update_irsa.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-UpdateIRSARole
+      FunctionName: k8s-rotten-chess-UpdateIRSARole
       Timeout: 120
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          CLUSTER_NAME: 'test-RottenChessAnalysisCluster'
-          IRSA_ROLE_NAME: 'test-IRSAServiceRole'
+          CLUSTER_NAME: 'k8s-RottenChessAnalysisCluster'
+          IRSA_ROLE_NAME: 'k8s-IRSAServiceRole'
           ACCOUNT_ID: !Sub '${AWS::AccountId}'
       Architectures:
         - x86_64
@@ -326,13 +326,13 @@ Resources:
       CodeUri: ../../functions/is_cluster_up/
       Handler: is_cluster_up.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-IsClusterUp
+      FunctionName: k8s-rotten-chess-IsClusterUp
       Timeout: 120
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          CLUSTER_NAME: 'test-RottenChessAnalysisCluster'
+          CLUSTER_NAME: 'k8s-RottenChessAnalysisCluster'
       Architectures:
         - x86_64
 
@@ -343,7 +343,7 @@ Resources:
       CodeUri: ../../functions/api/get_player_stats/
       Handler: get_player_stats.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-GetPlayerStats
+      FunctionName: k8s-rotten-chess-GetPlayerStats
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -359,7 +359,7 @@ Resources:
       CodeUri: ../../functions/api/get_players/
       Handler: get_players.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-GetPlayers
+      FunctionName: k8s-rotten-chess-GetPlayers
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -375,7 +375,7 @@ Resources:
       CodeUri: ../../functions/api/get_leaderboard_history/
       Handler: get_leaderboard_history.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-GetLeaderboardHistory
+      FunctionName: k8s-rotten-chess-GetLeaderboardHistory
       Timeout: 60 
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -391,7 +391,7 @@ Resources:
       CodeUri: ../../functions/api/get_last_updated/
       Handler: get_last_updated.lambda_handler
       Runtime: python3.12
-      FunctionName: test-rotten-chess-GetLastUpdated
+      FunctionName: k8s-rotten-chess-GetLastUpdated
       Timeout: 30
       MemorySize: 128  
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -405,7 +405,7 @@ Resources:
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
-      StateMachineName: test-rotten-chess-StateMachine
+      StateMachineName: k8s-rotten-chess-StateMachine
       RoleArn: !GetAtt StepFunctionsExecutionRole.Arn
       DefinitionString: !Sub |
         {
@@ -420,9 +420,9 @@ Resources:
                   "States": {
                     "Import Player Games": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ImportPlayerGames:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-ImportPlayerGames:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ImportPlayerGames:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-ImportPlayerGames:$LATEST"
                       },
                       "ResultPath": "$.importResult",
                       "Retry": [
@@ -447,7 +447,7 @@ Resources:
                   "States": {
                     "Provision NAT Gateway": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ProvisionNATGateway:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-ProvisionNATGateway:$LATEST",
                       "ResultPath": "$.natResult",
                       "End": true
                     }
@@ -460,7 +460,7 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-EnqueueDynamoDBItems:$LATEST",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-EnqueueDynamoDBItems:$LATEST",
                 "Payload.$": "$"
               },
               "Retry": [
@@ -480,7 +480,7 @@ Resources:
             },
             "Provision EKS": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ProvisionEKS:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-ProvisionEKS:$LATEST",
               "ResultPath": "$.eksResult",
               "Next": "Wait 5 Minutes for Cluster"
             },
@@ -491,7 +491,7 @@ Resources:
             },
             "Check Cluster Up": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-IsClusterUp:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-IsClusterUp:$LATEST",
               "ResultPath": "$.clusterCheck",
               "Next": "Cluster Check Choice"
             },
@@ -513,7 +513,7 @@ Resources:
             },
             "Update IRSA Role": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-UpdateIRSARole:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-UpdateIRSARole:$LATEST",
               "ResultPath": "$.irsaResult",
               "Next": "Run CodeBuild"
             },
@@ -521,7 +521,7 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:states:::codebuild:startBuild.sync",
               "Parameters": {
-                "ProjectName": "test-rottenchess-SetupCluster"
+                "ProjectName": "k8s-rottenchess-SetupCluster"
               },
               "ResultPath": "$.codebuildResult",
               "Next": "Wait 5 Minutes"
@@ -533,7 +533,7 @@ Resources:
             },
             "Check Deprovision Condition": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeprovisionEKS:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeprovisionEKS:$LATEST",
               "Next": "Is Condition Met"
             },
             "Is Condition Met": {
@@ -560,7 +560,7 @@ Resources:
                   "States": {
                     "Deprovision EKS": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeprovisionEKS:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeprovisionEKS:$LATEST",
                       "End": true
                     }
                   }
@@ -570,7 +570,7 @@ Resources:
                   "States": {
                     "Deprovision NAT Gateway": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeprovisionNATGateway:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeprovisionNATGateway:$LATEST",
                       "End": true
                     }
                   }
@@ -580,9 +580,9 @@ Resources:
             },
             "Delete DynamoDB Items": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeleteDynamoDBItems:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeleteDynamoDBItems:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeleteDynamoDBItems:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-DeleteDynamoDBItems:$LATEST"
               },
               "Retry": [
                 {
@@ -604,7 +604,7 @@ Resources:
               "Resource": "arn:aws:states:::lambda:invoke",
               "OutputPath": "$.Payload",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-LastUpdated:$LATEST",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:k8s-rotten-chess-LastUpdated:$LATEST",
                 "Payload.$": "$"
               },
               "End": true

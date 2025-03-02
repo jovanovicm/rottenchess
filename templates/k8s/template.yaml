@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: k8s template Rotten Chess
+
+Parameters:
+  DeployEKS:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Default: "false"
+
+Conditions:
+  ShouldDeployEKS: !Equals [!Ref DeployEKS, "true"]
+
+Resources:
+  k8sInfrastructureStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./infrastructure.yaml
+
+  k8sFunctionsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./functions.yaml
+      Parameters:
+        VPC: !GetAtt k8sInfrastructureStack.Outputs.VPC
+        SecurityGroup: !GetAtt k8sInfrastructureStack.Outputs.SecurityGroup
+        PublicSubnet: !GetAtt k8sInfrastructureStack.Outputs.PublicSubnet
+        EKSSubnets: !GetAtt k8sInfrastructureStack.Outputs.EKSSubnets
+        EKSSubnetRouteTable: !GetAtt k8sInfrastructureStack.Outputs.EKSSubnetRouteTable
+        GameImportsTable: !GetAtt k8sInfrastructureStack.Outputs.GameImportsTable
+        TrackedPlayersTable: !GetAtt k8sInfrastructureStack.Outputs.TrackedPlayersTable
+        PlayerStatsTable: !GetAtt k8sInfrastructureStack.Outputs.PlayerStatsTable
+        ProcessedGamesTable: !GetAtt k8sInfrastructureStack.Outputs.ProcessedGamesTable
+        LeaderboardHistoryTable: !GetAtt k8sInfrastructureStack.Outputs.LeaderboardHistoryTable
+        MetadataTable: !GetAtt k8sInfrastructureStack.Outputs.MetadataTable
+        GameQueue: !GetAtt k8sInfrastructureStack.Outputs.GameQueue
+        TemplatesBucket: !GetAtt k8sInfrastructureStack.Outputs.TemplatesBucket
+  
+  k8sEKSStack:
+    Condition: ShouldDeployEKS
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./eks.yaml
+      Parameters:
+        VPC: !GetAtt k8sInfrastructureStack.Outputs.VPC
+        EKSSubnets: !GetAtt k8sInfrastructureStack.Outputs.EKSSubnets
+        SecurityGroup: !GetAtt k8sInfrastructureStack.Outputs.SecurityGroup

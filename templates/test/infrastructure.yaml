@@ -1,0 +1,228 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Test Rotten Chess Infrastructure
+
+Resources:
+  GameImportsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-GameImportsTable
+      PrimaryKey:
+        Name: game_uuid
+        Type: String
+  
+  TrackedPlayersTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-TrackedPlayersTable
+      PrimaryKey:
+        Name: username
+        Type: String
+  
+  PlayerStatsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-PlayerStatsTable
+      PrimaryKey:
+        Name: username
+        Type: String
+  
+  ProcessedGamesTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-ProcessedGamesTable
+      PrimaryKey:
+        Name: message_id
+        Type: String
+  
+  LeaderboardHistoryTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-LeaderboardHistory
+      PrimaryKey:
+        Name: date
+        Type: String
+
+  MetadataTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: test-rotten-chess-MetadataTable
+      PrimaryKey:
+        Name: metadata_id
+        Type: String
+    
+  GameQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: test-rotten-chess-GameQueue
+
+  AnalysisLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: test-AnalysisLogGroup
+      RetentionInDays: 14
+
+  TemplatesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: test-rotten-chess-templatesbucket
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "MyInternetGateway"
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Shared security group
+      VpcId: !Ref VPC
+
+  SecurityGroupAccessRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref SecurityGroup
+      GroupId: !Ref SecurityGroup
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24 # Change to 10.0.4.0/24, then back to 10.0.1.0/24
+
+  PublicSubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicSubnetRouteTable  
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicSubnetRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  
+  EKSSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+  
+  EKSSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+
+  EKSSubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  EKSSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EKSSubnet1
+      RouteTableId: !Ref EKSSubnetRouteTable
+
+  EKSSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EKSSubnet2
+      RouteTableId: !Ref EKSSubnetRouteTable
+
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PublicSubnetRouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !Ref VPC
+  
+  DynamoDBEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PublicSubnetRouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.dynamodb
+      VpcId: !Ref VPC
+
+Outputs:
+  VPC:
+    Description: ID of the VPC
+    Value: !Ref VPC
+
+  SecurityGroup:
+    Description: ID of the Security Group
+    Value: !Ref SecurityGroup
+  
+  PublicSubnet:
+    Description: ID of the PrivateLink Subnet
+    Value: !Ref PublicSubnet
+
+  EKSSubnets:
+    Description: IDs of the EKS Subnets
+    Value: !Join [",", [!Ref EKSSubnet1, !Ref EKSSubnet2]]
+  
+  EKSSubnetRouteTable:
+    Description: IDs of the EKS Subnet Route Table
+    Value: !Ref EKSSubnetRouteTable
+
+  GameImportsTable:
+    Description: ARN of the Game Imports Table
+    Value: !Ref GameImportsTable
+
+  TrackedPlayersTable:
+    Description: ARN of the Tracked Players Table
+    Value: !Ref TrackedPlayersTable
+
+  PlayerStatsTable:
+    Description: ARN of the Player Stats Table
+    Value: !Ref PlayerStatsTable
+  
+  ProcessedGamesTable:
+    Description: ARN of the Processed Games Table
+    Value: !Ref ProcessedGamesTable
+  
+  LeaderboardHistoryTable:
+    Description: ARN of the Leaderboard History Table
+    Value: !Ref LeaderboardHistoryTable
+  
+  MetadataTable:
+    Description: ARN of the Metadata Table
+    Value: !Ref MetadataTable
+
+  GameQueue:
+    Description: URL of the Game Queue
+    Value: !Ref GameQueue
+  
+  TemplatesBucket:
+    Description: Name of Templates Bucket
+    Value: !Ref TemplatesBucket

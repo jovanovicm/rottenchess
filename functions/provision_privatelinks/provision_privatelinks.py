@@ -16,7 +16,8 @@ def lambda_handler(event, context):
         f'com.amazonaws.{AWS_REGION}.sqs',
         f'com.amazonaws.{AWS_REGION}.ecr.api',
         f'com.amazonaws.{AWS_REGION}.ecr.dkr',
-        f'com.amazonaws.{AWS_REGION}.ecs'
+        f'com.amazonaws.{AWS_REGION}.eks',
+        f'com.amazonaws.{AWS_REGION}.ec2'
     ]
 
     for service in services:

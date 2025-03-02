@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+  labels:
+    app: cluster-autoscaler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-autoscaler
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler
+    spec:
+      serviceAccountName: scaler-irsa
+      nodeSelector:
+        nodegroup: autoscaler
+      containers:
+        - name: cluster-autoscaler
+          image: k8s.gcr.io/autoscaling/cluster-autoscaler:v1.27.1
+          command:
+            - ./cluster-autoscaler
+            - --v=4
+            - --stderrthreshold=info
+            - --cloud-provider=aws
+            - --skip-nodes-with-local-storage=false
+            - --expander=least-waste
+            - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/test-RottenChessAnalysisCluster
+            - --scale-down-unneeded-time=10s
+            - --scale-down-delay-after-add=10s
+          env:
+            - name: AWS_REGION
+              value: "{{ .Values.region }}"

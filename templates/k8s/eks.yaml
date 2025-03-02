@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EKS Cluster for Rotten Chess Analysis
+
+Parameters:
+  VPC:
+    Type: String
+  EKSSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+  SecurityGroup:
+    Type: String
+
+Resources:
+  EKSClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
+    
+  EKSNodeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: k8s-EKSNodeRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  IRSAServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: k8s-IRSAServiceRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/dummy"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringLike:
+                "dummy:sub": "system:serviceaccount:*:*"
+      Policies:
+        - PolicyName: EKSPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - eks:*
+                  - ecr:*
+                  - ec2:*
+                  - logs:*
+                  - sqs:*
+                  - dynamodb:*
+                  - autoscaling:*
+                Resource: "*"
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: k8s-RottenChessAnalysisCluster
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      AccessConfig:
+        AuthenticationMode: API_AND_CONFIG_MAP
+      ResourcesVpcConfig:
+        SubnetIds: !Ref EKSSubnets
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: true
+
+  EKSAnalysisNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: k8s-RottenChessAnalysisNodeGroup
+      Subnets: !Ref EKSSubnets
+      Labels:
+        nodegroup: analysis
+      ScalingConfig:
+        MinSize: 0
+        DesiredSize: 0
+        MaxSize: 400
+      InstanceTypes:
+        - c8g.medium
+        - c7g.medium
+        - c6gd.medium
+      CapacityType: SPOT
+      AmiType: AL2023_ARM_64_STANDARD
+      NodeRole: !GetAtt EKSNodeRole.Arn
+  
+  EKSKEDANodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: k8s-RottenChessKEDANodeGroup
+      Subnets: !Ref EKSSubnets
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: 1
+        MaxSize: 1
+      InstanceTypes:
+        - c8g.medium
+        - c7g.medium
+        - c6gd.medium
+      CapacityType: SPOT
+      AmiType: AL2023_ARM_64_STANDARD
+      NodeRole: !GetAtt EKSNodeRole.Arn
+
+  EKSAutoscalerNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: k8s-RottenChessAutoscalerNodeGroup
+      Subnets: !Ref EKSSubnets
+      Labels:
+        nodegroup: autoscaler
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: 1
+        MaxSize: 1
+      InstanceTypes:
+        - c8g.medium
+        - c7g.medium
+        - c6gd.medium
+      CapacityType: SPOT
+      AmiType: AL2023_ARM_64_STANDARD
+      NodeRole: !GetAtt EKSNodeRole.Arn
