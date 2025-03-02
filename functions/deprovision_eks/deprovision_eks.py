@@ -46,10 +46,16 @@ def lambda_handler(event, context):
     if condition1 or condition2:
         try:
             cf_client.delete_stack(StackName=stack_name)
-            message = f"Deletion initiated for stack '{stack_name}' because condition met: in_flight={in_flight}, running_instances={running_instances}"
-            return {"statusCode": 200, "body": json.dumps(message)}
+            return {
+                "statusCode": 200,
+                "deprovision": True,
+                "body": json.dumps(f"Deletion initiated for stack '{stack_name}' because condition met: in_flight={in_flight}, running_instances={running_instances}")
+            }
         except Exception as e:
             return {"statusCode": 500, "body": json.dumps(f"Error deleting stack: {str(e)}")}
     else:
-        message = f"No deletion. in_flight={in_flight}, running_instances={running_instances}"
-        return {"statusCode": 200, "body": json.dumps(message)}
+        return {
+            "statusCode": 200,
+            "deprovision": False,
+            "body": json.dumps(f"No deletion. in_flight={in_flight}, running_instances={running_instances}")
+        }
