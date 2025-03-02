@@ -403,9 +403,9 @@ Resources:
                   "States": {
                     "Import Player Games": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGames:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ImportPlayerGames:$LATEST",
                       "Parameters": {
-                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ImportPlayerGames:$LATEST"
+                        "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ImportPlayerGames:$LATEST"
                       },
                       "ResultPath": "$.importResult",
                       "Retry": [
@@ -430,7 +430,7 @@ Resources:
                   "States": {
                     "Provision NAT Gateway": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ProvisionNATGateway:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ProvisionNATGateway:$LATEST",
                       "ResultPath": "$.natResult",
                       "End": true
                     }
@@ -443,7 +443,7 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-EnqueueDynamoDBItems:$LATEST",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-EnqueueDynamoDBItems:$LATEST",
                 "Payload.$": "$"
               },
               "Retry": [
@@ -463,13 +463,13 @@ Resources:
             },
             "Provision EKS": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-ProvisionEKS:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ProvisionEKS:$LATEST",
               "ResultPath": "$.eksResult",
               "Next": "Update IRSA Role"
             },
             "Update IRSA Role": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-UpdateIRSARole:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-UpdateIRSARole:$LATEST",
               "ResultPath": "$.irsaResult",
               "Next": "Run CodeBuild"
             },
@@ -489,7 +489,7 @@ Resources:
             },
             "Check Deprovision Condition": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeprovisionEKS:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeprovisionEKS:$LATEST",
               "Next": "Is Condition Met"
             },
             "Is Condition Met": {
@@ -516,7 +516,7 @@ Resources:
                   "States": {
                     "Deprovision EKS": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeprovisionEKS:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeprovisionEKS:$LATEST",
                       "End": true
                     }
                   }
@@ -526,7 +526,7 @@ Resources:
                   "States": {
                     "Deprovision NAT Gateway": {
                       "Type": "Task",
-                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeprovisionNATGateway:$LATEST",
+                      "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeprovisionNATGateway:$LATEST",
                       "End": true
                     }
                   }
@@ -536,9 +536,9 @@ Resources:
             },
             "Delete DynamoDB Items": {
               "Type": "Task",
-              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeleteDynamoDBItems:$LATEST",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-DeleteDynamoDBItems:$LATEST"
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-DeleteDynamoDBItems:$LATEST"
               },
               "Retry": [
                 {
@@ -560,7 +560,7 @@ Resources:
               "Resource": "arn:aws:states:::lambda:invoke",
               "OutputPath": "$.Payload",
               "Parameters": {
-                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:rotten-chess-LastUpdated:$LATEST",
+                "FunctionName": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-LastUpdated:$LATEST",
                 "Payload.$": "$"
               },
               "End": true
