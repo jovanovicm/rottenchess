@@ -18,30 +18,33 @@ def lambda_handler(event, context):
     # Remove the protocol to form the provider identifier
     oidc_provider = oidc_issuer_url.replace("https://", "")
     
-    # Form the expected provider ARN
+    # Form the new provider ARN
     provider_arn = f"arn:aws:iam::{account_id}:oidc-provider/{oidc_provider}"
     
-    # Check if the OIDC provider is already registered
+    # List and delete all existing OIDC providers
     providers = iam_client.list_open_id_connect_providers()['OpenIDConnectProviderList']
-    provider_exists = any(provider.get('Arn') == provider_arn for provider in providers)
-    
-    if not provider_exists:
+    for provider in providers:
         try:
-            create_response = iam_client.create_open_id_connect_provider(
-                Url=oidc_issuer_url,
-                ClientIDList=["sts.amazonaws.com"],
-                ThumbprintList=["9e99a48a9960b14926bb7f3b02e22da0afd8c30a"]
-            )
-            print("OIDC provider created:", create_response)
+            iam_client.delete_open_id_connect_provider(OpenIDConnectProviderArn=provider['Arn'])
+            print("Deleted OIDC provider:", provider['Arn'])
         except Exception as e:
-            return {
-                "statusCode": 500,
-                "body": json.dumps(f"Error creating OIDC provider: {str(e)}")
-            }
-    else:
-        print("OIDC provider already exists:", provider_arn)
+            print(f"Error deleting provider {provider['Arn']}: {str(e)}")
     
-    # Build the trust policy with the correct OIDC provider ARN
+    # Create a new OIDC provider
+    try:
+        create_response = iam_client.create_open_id_connect_provider(
+            Url=oidc_issuer_url,
+            ClientIDList=["sts.amazonaws.com"],
+            ThumbprintList=["9e99a48a9960b14926bb7f3b02e22da0afd8c30a"]
+        )
+        print("OIDC provider created:", create_response)
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps(f"Error creating OIDC provider: {str(e)}")
+        }
+    
+    # Build the trust policy with the new OIDC provider ARN
     trust_policy = {
         "Version": "2012-10-17",
         "Statement": [
