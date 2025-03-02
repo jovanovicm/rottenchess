@@ -104,6 +104,8 @@ Resources:
       CapacityType: SPOT
       AmiType: AL2023_ARM_64_STANDARD
       NodeRole: !GetAtt EKSNodeRole.Arn
+
+  
   
   EKSKEDANodeGroup:
     Type: AWS::EKS::Nodegroup
@@ -111,6 +113,26 @@ Resources:
       ClusterName: !Ref EKSCluster
       NodegroupName: test-RottenChessKEDANodeGroup
       Subnets: !Ref EKSSubnets
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: 1
+        MaxSize: 1
+      InstanceTypes:
+        - c8g.medium
+        - c7g.medium
+        - c6gd.medium
+      CapacityType: SPOT
+      AmiType: AL2023_ARM_64_STANDARD
+      NodeRole: !GetAtt EKSNodeRole.Arn
+
+  EKSAutoscalerNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: test-RottenChessAutoscalerNodeGroup
+      Subnets: !Ref EKSSubnets
+      Labels:
+        nodegroup: autoscaler
       ScalingConfig:
         MinSize: 1
         DesiredSize: 1

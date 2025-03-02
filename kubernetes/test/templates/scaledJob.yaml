@@ -1,7 +1,7 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledJob
 metadata:
-  name: sqs-scaledjob
+  name: chess-analysis-job
   namespace: scaledjobs
 spec:
   jobTargetRef:
