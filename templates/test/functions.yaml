@@ -318,6 +318,22 @@ Resources:
           ACCOUNT_ID: !Sub '${AWS::AccountId}'
       Architectures:
         - x86_64
+  
+  IsClusterUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../functions/is_cluster_up/
+      Handler: is_cluster_up.lambda_handler
+      Runtime: python3.12
+      FunctionName: test-rotten-chess-IsClusterUp
+      Timeout: 120
+      MemorySize: 128  
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          CLUSTER_NAME: 'test-RottenChessAnalysisCluster'
+      Architectures:
+        - x86_64
 
   # API
   GetPlayerStatsFunction:
@@ -465,7 +481,34 @@ Resources:
               "Type": "Task",
               "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-ProvisionEKS:$LATEST",
               "ResultPath": "$.eksResult",
-              "Next": "Update IRSA Role"
+              "Next": "Wait 5 Minutes for Cluster"
+            },
+            "Wait 5 Minutes for Cluster": {
+              "Type": "Wait",
+              "Seconds": 300,
+              "Next": "Check Cluster Up"
+            },
+            "Check Cluster Up": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-rotten-chess-IsClusterUp:$LATEST",
+              "ResultPath": "$.clusterCheck",
+              "Next": "Cluster Check Choice"
+            },
+            "Cluster Check Choice": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.clusterCheck.clusterUp",
+                  "BooleanEquals": true,
+                  "Next": "Update IRSA Role"
+                }
+              ],
+              "Default": "Wait 1 Minute for Cluster"
+            },
+            "Wait 1 Minute for Cluster": {
+              "Type": "Wait",
+              "Seconds": 60,
+              "Next": "Check Cluster Up"
             },
             "Update IRSA Role": {
               "Type": "Task",

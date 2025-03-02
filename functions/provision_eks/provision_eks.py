@@ -1,5 +1,6 @@
 import boto3
 import os
+from botocore.exceptions import ClientError
 
 cloudformation = boto3.client('cloudformation')
 s3 = boto3.client('s3')
@@ -14,24 +15,30 @@ def lambda_handler(event, context):
     
     template_url = f'https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{TEMPLATE_KEY}'
     stack_name = 'TestEKSStack'
+    
+    # Check if the stack already exists
+    try:
+        cloudformation.describe_stacks(StackName=stack_name)
+        return {
+            'statusCode': 200,
+            'body': f'Stack {stack_name} already exists. Skipping creation.'
+        }
+    except ClientError as e:
+        error_message = e.response['Error']['Message']
+        if "does not exist" in error_message:
+            pass
+        else:
+            raise e
 
+    # Create the stack if it doesn't exist
     response = cloudformation.create_stack(
         StackName=stack_name,
         TemplateURL=template_url,
         Capabilities=['CAPABILITY_IAM','CAPABILITY_AUTO_EXPAND', 'CAPABILITY_NAMED_IAM'],
         Parameters=[
-            {
-                'ParameterKey': 'VPC',
-                'ParameterValue': VPC
-            },
-            {
-                'ParameterKey': 'EKSSubnets',
-                'ParameterValue': EKS_SUBNETS
-            },
-            {
-                'ParameterKey': 'SecurityGroup',
-                'ParameterValue': SECURITY_GROUP
-            },
+            {'ParameterKey': 'VPC', 'ParameterValue': VPC},
+            {'ParameterKey': 'EKSSubnets', 'ParameterValue': EKS_SUBNETS},
+            {'ParameterKey': 'SecurityGroup', 'ParameterValue': SECURITY_GROUP},
         ],
     )
 
