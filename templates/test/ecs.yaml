@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Production Rotten Chess Infrastructure
+
+Resources:
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: rotten-chess-ECSService
+      Cluster: !Ref ECSCluster
+      DesiredCount: 0
+      TaskDefinition: !Ref ECSTaskDefinition
+      CapacityProviderStrategy: 
+        - Base: 0
+          CapacityProvider: FARGATE_SPOT
+          Weight: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnet
+          SecurityGroups:
+            - !Ref SecurityGroup
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: rotten-chess-ECSCluster
+      CapacityProviders:
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 1
+
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: rotten-chess-task
+      Cpu: 1024
+      Memory: 2048
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ECSTaskRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: chess-analysis
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/rotten-chess-ecr-repository:latest
+          Essential: true
+          Cpu: 1024
+          Memory: 2048
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref AnalysisLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Environment:
+            - Name: SQS_QUEUE_URL
+              Value: !Ref GameQueue
+            - Name: PLAYER_STATS_TABLE
+              Value: !Ref PlayerStatsTable
+            - Name: PROCESSED_GAMES_TABLE 
+              Value: !Ref ProcessedGamesTable
+            - Name: ECS_CLUSTER_NAME
+              Value: 'rotten-chess-ECSCluster'
+            - Name: ECS_SERVICE_NAME
+              Value: 'rotten-chess-ECSService'
